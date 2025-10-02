@@ -1,25 +1,41 @@
 ---
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 ---
 
 <section class="relative overflow-hidden">
   <!-- Gradient Background -->
-  <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-purple-500/5 to-background -z-10"></div>
+  <div
+    class="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background -z-10"
+  >
+  </div>
 
   <!-- Animated Orbs -->
-  <div class="absolute top-20 -left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse -z-10"></div>
-  <div class="absolute bottom-20 -right-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse animation-delay-2000 -z-10"></div>
+  <div
+    class="absolute top-20 -left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse -z-10"
+  >
+  </div>
+  <div
+    class="absolute bottom-20 -right-20 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse animation-delay-2000 -z-10"
+  >
+  </div>
 
   <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-32">
     <div class="max-w-4xl mx-auto text-center space-y-8">
       <!-- Badge -->
-      <div class="inline-flex items-center rounded-full border border-border px-4 py-1.5 text-sm font-medium animate-fade-in-up">
-        <span class="text-muted-foreground">✨ Powering the future with AI</span>
+      <div
+        class="inline-flex items-center rounded-full border border-border px-4 py-1.5 text-sm font-medium animate-fade-in-up"
+      >
+        <span class="text-muted-foreground">✨ Powering the future with AI</span
+        >
       </div>
 
       <!-- Main Heading -->
-      <h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight animate-fade-in-up animation-delay-200">
-        <span class="bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent">
+      <h1
+        class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight animate-fade-in-up animation-delay-200"
+      >
+        <span
+          class="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent"
+        >
           Transform Your Business
         </span>
         <br />
@@ -27,19 +43,34 @@ import { Button } from '@/components/ui/button';
       </h1>
 
       <!-- Description -->
-      <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in-up animation-delay-400">
-        Discover our comprehensive suite of AI products designed to streamline operations, enhance productivity, and drive innovation across your organization.
+      <p
+        class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in-up animation-delay-400"
+      >
+        Discover our comprehensive suite of AI products designed to streamline
+        operations, enhance productivity, and drive innovation across your
+        organization.
       </p>
 
       <!-- CTA Buttons -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up animation-delay-600">
+      <div
+        class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up animation-delay-600"
+      >
         <a
           href="/products"
           class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8"
         >
           Explore Products
-          <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          <svg
+            class="ml-2 h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"></path>
           </svg>
         </a>
         <a
@@ -51,17 +82,19 @@ import { Button } from '@/components/ui/button';
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-12 animate-fade-in-up animation-delay-800">
+      <div
+        class="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-12 animate-fade-in-up animation-delay-800"
+      >
         <div class="text-center">
-          <div class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">9+</div>
+          <div class="text-3xl sm:text-4xl font-bold text-primary">9+</div>
           <div class="text-sm text-muted-foreground mt-1">AI Products</div>
         </div>
         <div class="text-center">
-          <div class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">24/7</div>
+          <div class="text-3xl sm:text-4xl font-bold text-primary">24/7</div>
           <div class="text-sm text-muted-foreground mt-1">Availability</div>
         </div>
         <div class="text-center">
-          <div class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">100%</div>
+          <div class="text-3xl sm:text-4xl font-bold text-primary">100%</div>
           <div class="text-sm text-muted-foreground mt-1">AI Powered</div>
         </div>
       </div>

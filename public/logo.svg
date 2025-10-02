@@ -1,0 +1,41 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base cube structure -->
+  <g id="cube">
+    <!-- Front face -->
+    <path d="M24 14L36 20V32L24 38L12 32V20L24 14Z" fill="#6bb02a" fill-opacity="0.9"/>
+
+    <!-- Top face -->
+    <path d="M24 14L36 20L24 26L12 20L24 14Z" fill="#8cd645" fill-opacity="0.95"/>
+
+    <!-- Right face -->
+    <path d="M24 26V38L36 32V20L24 26Z" fill="#5a9423" fill-opacity="0.9"/>
+  </g>
+
+  <!-- AI neural network nodes -->
+  <g id="ai-nodes">
+    <!-- Connection lines -->
+    <line x1="18" y1="22" x2="24" y2="26" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+    <line x1="30" y1="22" x2="24" y2="26" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+    <line x1="24" y1="26" x2="24" y2="32" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+
+    <!-- Neural nodes -->
+    <circle cx="18" cy="22" r="2.5" fill="#ffffff" opacity="0.9"/>
+    <circle cx="30" cy="22" r="2.5" fill="#ffffff" opacity="0.9"/>
+    <circle cx="24" cy="26" r="3" fill="#ffffff"/>
+    <circle cx="24" cy="32" r="2.5" fill="#ffffff" opacity="0.9"/>
+  </g>
+
+  <!-- Glowing effect -->
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Center AI core with glow -->
+  <circle cx="24" cy="26" r="2" fill="#ffffff" filter="url(#glow)"/>
+</svg>

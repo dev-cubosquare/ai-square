@@ -1,12 +1,10 @@
 ---
-import Layout from '@/layouts/Layout.astro';
-import ProductCard from '@/components/ProductCard.astro';
-import { ProductFilter } from '@/components/ProductFilter';
-import { products } from '@/data/products';
+import Layout from "@/layouts/Layout.astro";
+import { FilterableProductGrid } from "@/components/FilterableProductGrid";
 
 // Get category from URL params
 const url = new URL(Astro.request.url);
-const categoryParam = url.searchParams.get('category') || 'all';
+const categoryParam = url.searchParams.get("category") || "all";
 ---
 
 <Layout
@@ -18,111 +16,18 @@ const categoryParam = url.searchParams.get('category') || 'all';
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="max-w-3xl mx-auto text-center space-y-4">
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-          Our <span class="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">AI Products</span>
+          Our <span
+            class="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent"
+            >AI Products</span
+          >
         </h1>
         <p class="text-lg sm:text-xl text-muted-foreground">
-          Discover powerful AI solutions designed to transform your business operations and drive growth.
+          Discover powerful AI solutions designed to transform your business
+          operations and drive growth.
         </p>
       </div>
     </div>
   </section>
 
-  <!-- Filter Section -->
-  <section class="py-8 sticky top-16 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between">
-        <div id="filter-container" class="flex-1">
-          <ProductFilter client:load currentCategory={categoryParam} onFilterChange={(category) => {}} />
-        </div>
-        <div class="text-sm text-muted-foreground">
-          <span id="product-count">{products.length}</span> products
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Products Grid -->
-  <section class="py-12 sm:py-16 lg:py-20">
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
-          <div class="product-item" data-category={product.category}>
-            <ProductCard product={product} />
-          </div>
-        ))}
-      </div>
-
-      <div id="no-products" class="hidden text-center py-12">
-        <p class="text-muted-foreground">No products found matching your criteria.</p>
-      </div>
-    </div>
-  </section>
+  <FilterableProductGrid client:load initialCategory={categoryParam} />
 </Layout>
-
-<script>
-  // Client-side filtering
-  function filterProducts(category: string) {
-    const productItems = document.querySelectorAll('.product-item');
-    const noProductsMsg = document.getElementById('no-products');
-    const productCount = document.getElementById('product-count');
-    let visibleCount = 0;
-
-    productItems.forEach((item) => {
-      const itemCategory = item.getAttribute('data-category');
-      if (category === 'all' || itemCategory === category) {
-        item.classList.remove('hidden');
-        visibleCount++;
-      } else {
-        item.classList.add('hidden');
-      }
-    });
-
-    if (productCount) {
-      productCount.textContent = visibleCount.toString();
-    }
-
-    if (noProductsMsg) {
-      if (visibleCount === 0) {
-        noProductsMsg.classList.remove('hidden');
-      } else {
-        noProductsMsg.classList.add('hidden');
-      }
-    }
-
-    // Update URL
-    const url = new URL(window.location.href);
-    if (category === 'all') {
-      url.searchParams.delete('category');
-    } else {
-      url.searchParams.set('category', category);
-    }
-    window.history.pushState({}, '', url);
-  }
-
-  // Listen for filter changes
-  document.addEventListener('DOMContentLoaded', () => {
-    const filterContainer = document.getElementById('filter-container');
-    if (filterContainer) {
-      filterContainer.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (target.tagName === 'BUTTON') {
-          const buttons = filterContainer.querySelectorAll('button');
-          buttons.forEach(btn => {
-            btn.classList.remove('bg-primary', 'text-primary-foreground');
-            btn.classList.add('bg-secondary', 'text-secondary-foreground');
-          });
-          target.classList.remove('bg-secondary', 'text-secondary-foreground');
-          target.classList.add('bg-primary', 'text-primary-foreground');
-        }
-      });
-    }
-
-    // Apply initial filter from URL
-    const url = new URL(window.location.href);
-    const category = url.searchParams.get('category') || 'all';
-    filterProducts(category);
-  });
-
-  // Make filter function global for React component
-  (window as any).filterProducts = filterProducts;
-</script>

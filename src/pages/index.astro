@@ -1,7 +1,7 @@
 ---
-import Layout from '@/layouts/Layout.astro';
-import Hero from '@/components/Hero.astro';
-import ProductGrid from '@/components/ProductGrid.astro';
+import Layout from "@/layouts/Layout.astro";
+import Hero from "@/components/Hero.astro";
+import ProductGrid from "@/components/ProductGrid.astro";
 ---
 
 <Layout
@@ -16,14 +16,17 @@ import ProductGrid from '@/components/ProductGrid.astro';
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center max-w-3xl mx-auto mb-12">
         <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-          Featured <span class="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">AI Products</span>
+          Featured <span
+            class="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent"
+            >AI Products</span
+          >
         </h2>
         <p class="text-lg text-muted-foreground">
           Explore our most popular AI solutions trusted by businesses worldwide.
         </p>
       </div>
 
-      <ProductGrid featured={true} />
+      <ProductGrid client:load featured={true} />
 
       <div class="text-center mt-12">
         <a
@@ -31,8 +34,17 @@ import ProductGrid from '@/components/ProductGrid.astro';
           class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-6"
         >
           View All Products
-          <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          <svg
+            class="ml-2 h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"></path>
           </svg>
         </a>
       </div>
@@ -44,47 +56,95 @@ import ProductGrid from '@/components/ProductGrid.astro';
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center max-w-3xl mx-auto mb-12">
         <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-          Why Choose <span class="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">AI Square</span>
+          Why Choose <span
+            class="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent"
+            >AI Square</span
+          >
         </h2>
         <p class="text-lg text-muted-foreground">
-          We're committed to delivering cutting-edge AI solutions that drive real business value.
+          We're committed to delivering cutting-edge AI solutions that drive
+          real business value.
         </p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="text-center space-y-4 p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow">
-          <div class="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <div
+          class="text-center space-y-4 p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow"
+        >
+          <div
+            class="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center"
+          >
+            <svg
+              class="w-6 h-6 text-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
             </svg>
           </div>
           <h3 class="text-xl font-semibold">Lightning Fast</h3>
           <p class="text-muted-foreground">
-            Our AI models are optimized for speed, delivering real-time responses and insights.
+            Our AI models are optimized for speed, delivering real-time
+            responses and insights.
           </p>
         </div>
 
-        <div class="text-center space-y-4 p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow">
-          <div class="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        <div
+          class="text-center space-y-4 p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow"
+        >
+          <div
+            class="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center"
+          >
+            <svg
+              class="w-6 h-6 text-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              ></path>
             </svg>
           </div>
           <h3 class="text-xl font-semibold">Enterprise Security</h3>
           <p class="text-muted-foreground">
-            Bank-level encryption and compliance with industry standards to protect your data.
+            Bank-level encryption and compliance with industry standards to
+            protect your data.
           </p>
         </div>
 
-        <div class="text-center space-y-4 p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow">
-          <div class="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+        <div
+          class="text-center space-y-4 p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow"
+        >
+          <div
+            class="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center"
+          >
+            <svg
+              class="w-6 h-6 text-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+              ></path>
             </svg>
           </div>
           <h3 class="text-xl font-semibold">Easy Integration</h3>
           <p class="text-muted-foreground">
-            Simple APIs and SDKs to integrate our AI products into your existing workflows.
+            Simple APIs and SDKs to integrate our AI products into your existing
+            workflows.
           </p>
         </div>
       </div>
@@ -92,16 +152,21 @@ import ProductGrid from '@/components/ProductGrid.astro';
   </section>
 
   <!-- CTA Section -->
-  <section class="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary/10 via-purple-500/5 to-background">
+  <section
+    class="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary/10 via-accent/5 to-background"
+  >
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="max-w-4xl mx-auto text-center space-y-8">
         <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
           Ready to Transform Your Business with AI?
         </h2>
         <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-          Join hundreds of companies already leveraging our AI solutions to drive innovation and growth.
+          Join hundreds of companies already leveraging our AI solutions to
+          drive innovation and growth.
         </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div
+          class="flex flex-col sm:flex-row gap-4 justify-center items-center"
+        >
           <a
             href="/products"
             class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8"
