@@ -1,0 +1,18 @@
+{
+  "envWatcher.filesToWatch": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.astro"
+  ],
+  "envWatcher.patterns": [
+    "process\\.env\\.(\\w+)",
+    "import\\.meta\\.env\\.(\\w+)"
+  ],
+  "envWatcher.envFile": ".env",
+  "envWatcher.exampleFile": ".env.example",
+  "envWatcher.examplePlaceholder": "your-value-here",
+  "envWatcher.autoCreateFiles": true,
+  "envWatcher.includeFilePaths": false,
+  "envWatcher.setupCompleted": true,
+  "envWatcher.enabled": true
+}

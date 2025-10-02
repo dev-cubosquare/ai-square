@@ -1,0 +1,99 @@
+---
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import type { Product } from "@/data/products";
+import { statusLabels } from "@/data/products";
+// import { DynamicIcon } from "lucide-react/dynamic";
+
+interface Props {
+  product: Product;
+}
+
+const { product } = Astro.props;
+---
+
+<a
+  href={product.landingPageUrl}
+  target="_blank"
+  rel="noopener noreferrer"
+  class="group block h-full transition-all duration-300 hover:scale-[1.02]"
+>
+  <div
+    class="h-full rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 group-hover:shadow-lg group-hover:border-primary/50"
+  >
+    <div class="p-6 space-y-4">
+      <!-- Icon & Status Badge -->
+      <div class="flex items-start justify-between">
+        <div
+          class="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors"
+        >
+          <!-- <DynamicIcon
+            name="camera"
+            client:load
+            className="h-6 w-6 text-primary"
+          /> -->
+        </div>
+        <Badge
+          variant={product.status === "live"
+            ? "default"
+            : product.status === "beta"
+              ? "secondary"
+              : "outline"}
+          className="text-xs"
+        >
+          {statusLabels[product.status]}
+        </Badge>
+      </div>
+
+      <!-- Title & Description -->
+      <div class="space-y-2">
+        <h3
+          class="text-xl font-semibold leading-tight group-hover:text-primary transition-colors"
+        >
+          {product.name}
+        </h3>
+        <p class="text-sm text-muted-foreground line-clamp-2">
+          {product.description}
+        </p>
+      </div>
+
+      <!-- Tags -->
+      <div class="flex flex-wrap gap-2">
+        {
+          product.tags
+            .slice(0, 3)
+            .map((tag) => (
+              <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground">
+                {tag}
+              </span>
+            ))
+        }
+      </div>
+
+      <!-- Learn More Link -->
+      <div
+        class="flex items-center text-sm font-medium text-primary group-hover:translate-x-1 transition-transform"
+      >
+        Learn more
+        <svg
+          class="ml-1 h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5l7 7-7 7"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+</a>
