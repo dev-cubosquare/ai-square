@@ -1,0 +1,233 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import TestimonialsSection from "@/components/TestimonialsSection.astro";
+import LexicalRenderer from "@/components/LexicalRenderer.astro";
+import SimpleAvatar from "@/components/SimpleAvatar.astro";
+import { blogPosts } from "@/data/blogs";
+import { products } from "@/data/products";
+import { Badge } from "@/components/ui/badge";
+
+export async function getStaticPaths() {
+  return blogPosts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
+}
+
+const { post } = Astro.props;
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+// Get related products
+const relatedProducts = post.productIds
+  ? products.filter(p => post.productIds?.includes(p.id))
+  : [];
+
+// Get related posts (same category, excluding current)
+const relatedPosts = blogPosts
+  .filter(p => p.category === post.category && p.id !== post.id)
+  .slice(0, 3);
+---
+
+<Layout
+  title={`${post.title} | AI Square Blog`}
+  description={post.excerpt}
+>
+  <!-- Article Hero -->
+  <article>
+    <section class="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto space-y-6">
+          {/* Breadcrumb */}
+          <nav class="flex items-center space-x-2 text-sm text-muted-foreground">
+            <a href="/" class="hover:text-primary transition-colors">Home</a>
+            <span>/</span>
+            <a href="/blog" class="hover:text-primary transition-colors">Blog</a>
+            <span>/</span>
+            <span class="text-foreground truncate">{post.title.split(':')[0]}</span>
+          </nav>
+
+          {/* Category Badge */}
+          <div>
+            <Badge variant="secondary">{post.category}</Badge>
+          </div>
+
+          {/* Title */}
+          <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
+            {post.title}
+          </h1>
+
+          {/* Excerpt */}
+          <p class="text-xl text-muted-foreground">
+            {post.excerpt}
+          </p>
+
+          {/* Author & Meta Info */}
+          <div class="flex flex-wrap items-center gap-6 pt-4">
+            <div class="flex items-center gap-3">
+              <SimpleAvatar name={post.author.name} avatar={post.author.avatar} size="lg" />
+              <div>
+                <div class="font-semibold text-foreground">{post.author.name}</div>
+                {post.author.role && (
+                  <div class="text-sm text-muted-foreground">{post.author.role}</div>
+                )}
+              </div>
+            </div>
+            <div class="flex items-center gap-4 text-sm text-muted-foreground">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>{formatDate(post.publishedAt)}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{post.readingTime} min read</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          {post.tags.length > 0 && (
+            <div class="flex flex-wrap gap-2 pt-4">
+              {post.tags.map((tag) => (
+                <Badge variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    {/* Main Content */}
+    <section class="py-16 sm:py-20">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+          <LexicalRenderer content={post.content} />
+        </div>
+      </div>
+    </section>
+
+    {/* Related Products */}
+    {relatedProducts.length > 0 && (
+      <section class="py-16 bg-muted/30">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold mb-8 text-center">
+              Related <span class="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent">Products</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {relatedProducts.map((product) => (
+                <a
+                  href={product.landingPageUrl || '#'}
+                  class="block p-6 bg-card border border-border rounded-lg hover:shadow-lg transition-all duration-300"
+                >
+                  <h3 class="text-xl font-semibold mb-2 flex items-center gap-2">
+                    {product.name}
+                    {product.status === 'live' && (
+                      <Badge variant="default" className="text-xs">Live</Badge>
+                    )}
+                  </h3>
+                  <p class="text-muted-foreground mb-4">{product.description}</p>
+                  <div class="flex flex-wrap gap-2">
+                    {product.tags.slice(0, 3).map((tag) => (
+                      <Badge variant="secondary" className="text-xs">{tag}</Badge>
+                    ))}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+  </article>
+
+  {/* Testimonials Section */}
+  <TestimonialsSection
+    title="What Our Customers Say"
+    description="See how businesses are achieving remarkable results with AI Square's products."
+    limit={3}
+  />
+
+  {/* Related Posts */}
+  {relatedPosts.length > 0 && (
+    <section class="py-16 sm:py-20 bg-muted/30">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+          <h2 class="text-3xl font-bold mb-8 text-center">Related Articles</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {relatedPosts.map((relatedPost) => (
+              <a
+                href={`/blog/${relatedPost.slug}`}
+                class="group block bg-card border border-border rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+              >
+                {/* Cover Image Placeholder */}
+                <div class="h-40 bg-gradient-to-br from-primary/15 via-accent/8 to-background flex items-center justify-center">
+                  <div class="text-3xl font-bold text-primary/20">
+                    {relatedPost.title.split(' ').slice(0, 2).map(word => word[0]).join('')}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div class="p-4 space-y-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {relatedPost.category}
+                  </Badge>
+                  <h3 class="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-2">
+                    {relatedPost.title}
+                  </h3>
+                  <p class="text-sm text-muted-foreground line-clamp-2">
+                    {relatedPost.excerpt}
+                  </p>
+                  <div class="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+                    <span>{relatedPost.readingTime} min read</span>
+                    <span>{formatDate(relatedPost.publishedAt)}</span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* CTA Section */}
+  <section class="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto text-center space-y-8">
+        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+          Ready to Transform Your Business?
+        </h2>
+        <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Discover how AI Square's products can help you achieve similar results.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a
+            href="/products"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8"
+          >
+            Explore Products
+          </a>
+          <a
+            href="/contact"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8"
+          >
+            Talk to Sales
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

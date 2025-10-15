@@ -1,0 +1,61 @@
+---
+import type { Testimonial } from '@/data/testimonials';
+
+interface Props {
+  testimonial: Testimonial;
+}
+
+const { testimonial } = Astro.props;
+
+// Generate initials from name
+const getInitials = (name: string) => {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const initials = getInitials(testimonial.name);
+---
+
+<div class="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-all duration-300 h-full flex flex-col">
+  <!-- Stars Rating -->
+  <div class="flex gap-1 mb-4">
+    {Array.from({ length: testimonial.rating }).map(() => (
+      <svg
+        class="w-5 h-5 text-yellow-500 fill-current"
+        viewBox="0 0 24 24"
+      >
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+      </svg>
+    ))}
+  </div>
+
+  <!-- Quote -->
+  <blockquote class="text-muted-foreground mb-6 flex-grow">
+    <p class="text-base leading-relaxed">"{testimonial.quote}"</p>
+  </blockquote>
+
+  <!-- Author Info -->
+  <div class="flex items-center gap-4 mt-auto">
+    <!-- Simple Avatar using div instead of shadcn component -->
+    <div class="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-primary/10">
+      {testimonial.avatar ? (
+        <img src={testimonial.avatar} alt={testimonial.name} class="aspect-square h-full w-full object-cover" />
+      ) : (
+        <span class="flex h-full w-full items-center justify-center text-sm font-semibold text-primary">
+          {initials}
+        </span>
+      )}
+    </div>
+
+    <div class="flex-1 min-w-0">
+      <div class="font-semibold text-foreground truncate">{testimonial.name}</div>
+      <div class="text-sm text-muted-foreground truncate">
+        {testimonial.role} at {testimonial.company}
+      </div>
+    </div>
+  </div>
+</div>

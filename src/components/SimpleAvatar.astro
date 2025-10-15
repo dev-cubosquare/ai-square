@@ -1,0 +1,42 @@
+---
+/**
+ * SimpleAvatar - A lightweight avatar component without React context issues
+ * Use this in Astro components instead of the shadcn Avatar to avoid SSR issues
+ */
+
+interface Props {
+  name: string;
+  avatar?: string;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+const { name, avatar, size = 'md', className = '' } = Astro.props;
+
+const getInitials = (name: string) => {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const initials = getInitials(name);
+
+const sizeClasses = {
+  sm: 'h-8 w-8 text-xs',
+  md: 'h-10 w-10 text-sm',
+  lg: 'h-12 w-12 text-base'
+};
+---
+
+<div class={`relative flex shrink-0 overflow-hidden rounded-full bg-primary/10 ${sizeClasses[size]} ${className}`}>
+  {avatar ? (
+    <img src={avatar} alt={name} class="aspect-square h-full w-full object-cover" />
+  ) : (
+    <span class="flex h-full w-full items-center justify-center font-semibold text-primary">
+      {initials}
+    </span>
+  )}
+</div>
