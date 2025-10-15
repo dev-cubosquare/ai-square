@@ -1,0 +1,112 @@
+---
+/**
+ * LexicalRenderer - Renders Lexical editor JSON content to HTML
+ * This is a basic renderer. For production, consider using @lexical/html or a more robust solution
+ */
+
+interface Props {
+  content: string; // JSON stringified Lexical editor state
+  className?: string;
+}
+
+const { content, className = "" } = Astro.props;
+
+// Parse the Lexical content
+let parsedContent;
+try {
+  parsedContent = JSON.parse(content);
+} catch (e) {
+  console.error('Failed to parse Lexical content:', e);
+  parsedContent = null;
+}
+
+// Simple renderer function for Lexical nodes
+const renderNode = (node: any): string => {
+  if (!node) return '';
+
+  switch (node.type) {
+    case 'text':
+      let text = node.text || '';
+      // Apply text formatting
+      if (node.format & 1) text = `<strong>${text}</strong>`; // Bold
+      if (node.format & 2) text = `<em>${text}</em>`; // Italic
+      if (node.format & 4) text = `<u>${text}</u>`; // Underline
+      if (node.format & 8) text = `<code>${text}</code>`; // Code
+      return text;
+
+    case 'paragraph':
+      const pChildren = node.children?.map(renderNode).join('') || '';
+      return `<p class="mb-4 text-base leading-relaxed text-foreground">${pChildren}</p>`;
+
+    case 'heading':
+      const hChildren = node.children?.map(renderNode).join('') || '';
+      const tag = node.tag || 'h2';
+      const headingClasses = {
+        h1: 'text-4xl font-bold mb-6 mt-8',
+        h2: 'text-3xl font-bold mb-4 mt-8',
+        h3: 'text-2xl font-semibold mb-3 mt-6',
+        h4: 'text-xl font-semibold mb-2 mt-4',
+        h5: 'text-lg font-semibold mb-2 mt-4',
+        h6: 'text-base font-semibold mb-2 mt-4'
+      };
+      return `<${tag} class="${headingClasses[tag as keyof typeof headingClasses]}">${hChildren}</${tag}>`;
+
+    case 'list':
+      const listTag = node.listType === 'number' ? 'ol' : 'ul';
+      const listChildren = node.children?.map(renderNode).join('') || '';
+      const listClass = node.listType === 'number'
+        ? 'list-decimal list-inside mb-4 space-y-2'
+        : 'list-disc list-inside mb-4 space-y-2';
+      return `<${listTag} class="${listClass}">${listChildren}</${listTag}>`;
+
+    case 'listitem':
+      const liChildren = node.children?.map(renderNode).join('') || '';
+      return `<li class="text-foreground">${liChildren}</li>`;
+
+    case 'quote':
+      const quoteChildren = node.children?.map(renderNode).join('') || '';
+      return `<blockquote class="border-l-4 border-primary pl-4 py-2 mb-4 italic text-muted-foreground">${quoteChildren}</blockquote>`;
+
+    case 'code':
+      const codeChildren = node.children?.map(renderNode).join('') || '';
+      return `<pre class="bg-muted p-4 rounded-lg mb-4 overflow-x-auto"><code class="text-sm">${codeChildren}</code></pre>`;
+
+    case 'link':
+      const linkChildren = node.children?.map(renderNode).join('') || '';
+      return `<a href="${node.url}" class="text-primary hover:underline" target="${node.target || '_self'}" rel="${node.rel || ''}">${linkChildren}</a>`;
+
+    case 'image':
+      return `<img src="${node.src}" alt="${node.altText || ''}" class="max-w-full h-auto rounded-lg mb-4" />`;
+
+    default:
+      // Handle unknown types or just render children
+      if (node.children) {
+        return node.children.map(renderNode).join('');
+      }
+      return '';
+  }
+};
+
+// Render the root content
+const renderedContent = parsedContent?.root?.children?.map(renderNode).join('') || '<p>No content available.</p>';
+---
+
+<div class={`prose prose-lg max-w-none ${className}`} set:html={renderedContent} />
+
+<style>
+  /* Additional prose styling */
+  .prose {
+    color: var(--foreground);
+  }
+
+  .prose :global(a) {
+    color: var(--primary);
+  }
+
+  .prose :global(code) {
+    background-color: var(--muted);
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+  }
+</style>

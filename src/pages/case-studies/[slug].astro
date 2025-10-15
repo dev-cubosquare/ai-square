@@ -1,0 +1,207 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import TestimonialsSection from "@/components/TestimonialsSection.astro";
+import LexicalRenderer from "@/components/LexicalRenderer.astro";
+import { caseStudies } from "@/data/case-studies";
+import { testimonials } from "@/data/testimonials";
+import { products } from "@/data/products";
+import { Badge } from "@/components/ui/badge";
+
+export async function getStaticPaths() {
+  return caseStudies.map((study) => ({
+    params: { slug: study.slug },
+    props: { study }
+  }));
+}
+
+const { study } = Astro.props;
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+// Get related testimonials
+const relatedTestimonials = study.testimonialIds
+  ? testimonials.filter(t => study.testimonialIds?.includes(t.id))
+  : [];
+
+// Get related products
+const relatedProducts = study.productIds
+  ? products.filter(p => study.productIds?.includes(p.id))
+  : [];
+---
+
+<Layout
+  title={`${study.title} - Case Study | AI Square`}
+  description={study.excerpt}
+>
+  <!-- Hero Section -->
+  <section class="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto space-y-6">
+        {/* Breadcrumb */}
+        <nav class="flex items-center space-x-2 text-sm text-muted-foreground">
+          <a href="/" class="hover:text-primary transition-colors">Home</a>
+          <span>/</span>
+          <a href="/case-studies" class="hover:text-primary transition-colors">Case Studies</a>
+          <span>/</span>
+          <span class="text-foreground">{study.client.name}</span>
+        </nav>
+
+        {/* Category Badge */}
+        <div>
+          <Badge variant="secondary">{study.category}</Badge>
+        </div>
+
+        {/* Title */}
+        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">
+          {study.title}
+        </h1>
+
+        {/* Excerpt */}
+        <p class="text-xl text-muted-foreground">
+          {study.excerpt}
+        </p>
+
+        {/* Meta Info */}
+        <div class="flex flex-wrap items-center gap-6 text-sm text-muted-foreground pt-4">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span><strong>Client:</strong> {study.client.name}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span><strong>Industry:</strong> {study.client.industry}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>{formatDate(study.publishedAt)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Metrics Section -->
+  {study.metrics && study.metrics.length > 0 && (
+    <section class="py-12 border-y border-border bg-card">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-2xl font-bold mb-8 text-center">Key Results</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {study.metrics.map((metric) => (
+              <div class="text-center space-y-2">
+                <div class="text-4xl font-bold text-primary">{metric.value}</div>
+                <div class="text-lg font-semibold text-foreground">{metric.label}</div>
+                {metric.description && (
+                  <div class="text-sm text-muted-foreground">{metric.description}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Main Content -->
+  <article class="py-16 sm:py-20">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto">
+        <LexicalRenderer content={study.content} />
+      </div>
+    </div>
+  </article>
+
+  <!-- Related Products -->
+  {relatedProducts.length > 0 && (
+    <section class="py-16 bg-muted/30">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-3xl font-bold mb-8 text-center">
+            Products Used in This <span class="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent">Case Study</span>
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {relatedProducts.map((product) => (
+              <a
+                href={product.landingPageUrl || '#'}
+                class="block p-6 bg-card border border-border rounded-lg hover:shadow-lg transition-all duration-300"
+              >
+                <h3 class="text-xl font-semibold mb-2">{product.name}</h3>
+                <p class="text-muted-foreground mb-4">{product.description}</p>
+                <Badge variant="secondary">{product.category}</Badge>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Testimonials Section -->
+  {relatedTestimonials.length > 0 && (
+    <TestimonialsSection
+      title="Client Testimonial"
+      description=""
+      featured={false}
+      limit={relatedTestimonials.length}
+      productId={undefined}
+    />
+  )}
+
+  <!-- CTA Section -->
+  <section class="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto text-center space-y-8">
+        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+          Ready to Achieve Similar Results?
+        </h2>
+        <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Let's discuss how AI Square can transform your business operations.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a
+            href="/products"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8"
+          >
+            Explore Products
+          </a>
+          <a
+            href="/contact"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8"
+          >
+            Talk to Sales
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- More Case Studies -->
+  <section class="py-16">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto text-center mb-12">
+        <h2 class="text-3xl font-bold mb-4">More Case Studies</h2>
+        <a
+          href="/case-studies"
+          class="inline-flex items-center text-primary hover:underline font-medium"
+        >
+          View All Case Studies
+          <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,144 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import TestimonialsSection from "@/components/TestimonialsSection.astro";
+import { caseStudies } from "@/data/case-studies";
+import { Badge } from "@/components/ui/badge";
+
+// Sort by published date (newest first)
+const sortedCaseStudies = [...caseStudies].sort(
+  (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+);
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+---
+
+<Layout
+  title="Case Studies - AI Square"
+  description="Discover how businesses are transforming their operations with AI Square's products. Real results from real customers."
+>
+  <!-- Hero Section -->
+  <section class="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto text-center space-y-6">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+          Customer <span
+            class="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent"
+          >Success Stories</span>
+        </h1>
+        <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
+          See how leading companies are achieving remarkable results with AI Square's products.
+          Real transformations. Real impact.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Case Studies Grid -->
+  <section class="py-16 sm:py-20 lg:py-24">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {sortedCaseStudies.map((study) => (
+          <a
+            href={`/case-studies/${study.slug}`}
+            class="group block bg-card border border-border rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+          >
+            {/* Cover Image Placeholder */}
+            <div class="h-48 bg-gradient-to-br from-primary/20 via-accent/10 to-background flex items-center justify-center">
+              <div class="text-center p-6">
+                <div class="text-4xl font-bold text-primary/40 mb-2">
+                  {study.client.name.split(' ').map(word => word[0]).join('').slice(0, 2)}
+                </div>
+                <div class="text-sm text-muted-foreground">{study.client.name}</div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div class="p-6 space-y-4">
+              {/* Category Badge */}
+              <Badge variant="secondary" className="text-xs">
+                {study.category}
+              </Badge>
+
+              {/* Title */}
+              <h3 class="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
+                {study.title}
+              </h3>
+
+              {/* Excerpt */}
+              <p class="text-muted-foreground line-clamp-3">
+                {study.excerpt}
+              </p>
+
+              {/* Metrics */}
+              {study.metrics && study.metrics.length > 0 && (
+                <div class="grid grid-cols-3 gap-2 pt-4 border-t border-border">
+                  {study.metrics.slice(0, 3).map((metric) => (
+                    <div class="text-center">
+                      <div class="text-lg font-bold text-primary">{metric.value}</div>
+                      <div class="text-xs text-muted-foreground">{metric.label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Meta */}
+              <div class="flex items-center justify-between pt-4 text-sm text-muted-foreground">
+                <span>{study.client.industry}</span>
+                <span>{formatDate(study.publishedAt)}</span>
+              </div>
+
+              {/* Read More */}
+              <div class="flex items-center text-primary font-medium group-hover:translate-x-1 transition-transform">
+                Read Case Study
+                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <TestimonialsSection
+    title="Hear From Our Customers"
+    description="Don't just take our word for it. See what our customers have to say about transforming their businesses with AI Square."
+    className="bg-muted/30"
+  />
+
+  <!-- CTA Section -->
+  <section class="py-16 sm:py-20 lg:py-24">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto text-center space-y-8 bg-gradient-to-br from-primary/10 via-accent/5 to-background rounded-2xl p-12">
+        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+          Ready to Write Your Success Story?
+        </h2>
+        <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Join hundreds of companies already transforming their businesses with AI Square.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a
+            href="/products"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8"
+          >
+            Explore Products
+          </a>
+          <a
+            href="/contact"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8"
+          >
+            Talk to Sales
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
