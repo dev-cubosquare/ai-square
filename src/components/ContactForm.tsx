@@ -45,7 +45,7 @@ export function ContactForm() {
 
     try {
       // Google Sheets URL - should be set in environment variables
-      const sheetUrl = import.meta.env.PUBLIC_GOOGLE_SHEET_URL;
+      const sheetUrl = "https://script.google.com/macros/s/AKfycbyv4Hq2HmrIz8S1nZ0a8icazISjPG5agQTOmguUc2hz7zt2wf0qiof6GKT4EKPhQe9F4g/exec";
 
       if (!sheetUrl) {
         throw new Error('Google Sheets URL not configured');

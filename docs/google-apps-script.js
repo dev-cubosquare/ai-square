@@ -130,6 +130,14 @@ function handleContactForm(data, sheetName) {
   // Auto-resize columns
   sheet.autoResizeColumns(1, headers.length);
 
+  // Send Discord notification (non-blocking)
+  try {
+    sendDiscordNotification(data);
+  } catch (error) {
+    Logger.log('Discord notification failed: ' + error.toString());
+    // Don't throw error - we still want to return success if sheet save worked
+  }
+
   return {
     message: 'Contact form submitted successfully',
     action: 'contact',
@@ -232,6 +240,80 @@ function handleDemoRequestForm(data, sheetName) {
     action: 'demo_request',
     rowNumber: sheet.getLastRow()
   };
+}
+
+/**
+ * Send Discord notification for contact form submission
+ */
+function sendDiscordNotification(data) {
+  // Get Discord webhook URL from Script Properties
+  // To set: File > Project Properties > Script Properties > Add row
+  // Property: DISCORD_WEBHOOK_URL
+  // Value: Your Discord webhook URL
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const webhookUrl = scriptProperties.getProperty('DISCORD_WEBHOOK_URL');
+
+  if (!webhookUrl) {
+    Logger.log('Discord webhook URL not configured in Script Properties');
+    return;
+  }
+
+  // Create Discord embed
+  const embed = {
+    title: '📬 New Contact Form Submission',
+    color: 0x5865F2, // Discord blurple color
+    fields: [
+      {
+        name: '👤 Name',
+        value: `${data.firstName} ${data.lastName}`,
+        inline: true
+      },
+      {
+        name: '📧 Email',
+        value: data.email,
+        inline: true
+      },
+      {
+        name: '🏢 Company',
+        value: data.company || 'Not provided',
+        inline: true
+      },
+      {
+        name: '📝 Subject',
+        value: data.subject,
+        inline: false
+      },
+      {
+        name: '💬 Message',
+        value: data.message.length > 1024 ? data.message.substring(0, 1021) + '...' : data.message,
+        inline: false
+      }
+    ],
+    footer: {
+      text: 'AI Square Contact Form'
+    },
+    timestamp: data.timestamp || new Date().toISOString()
+  };
+
+  // Send to Discord
+  const payload = {
+    embeds: [embed]
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(webhookUrl, options);
+
+  if (response.getResponseCode() !== 204) {
+    throw new Error('Discord webhook failed: ' + response.getContentText());
+  }
+
+  Logger.log('Discord notification sent successfully');
 }
 
 /**
