@@ -52,7 +52,7 @@ export function ContactForm() {
       }
 
       // Use proxy to call Google Sheets API
-      const proxyUrl = `http://proxy.zarrx.com/?url=${encodeURIComponent(sheetUrl)}`;
+      const proxyUrl = `https://proxy.zarrx.com/?url=${encodeURIComponent(sheetUrl)}`;
 
       const response = await fetch(proxyUrl, {
         method: 'POST',
