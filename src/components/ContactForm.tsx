@@ -44,11 +44,36 @@ export function ContactForm() {
     setSubmitStatus('idle');
 
     try {
-      // Here you would typically send the data to your backend API
-      // For now, we'll simulate an API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Google Sheets URL - should be set in environment variables
+      const sheetUrl = "https://script.google.com/macros/s/AKfycbyv4Hq2HmrIz8S1nZ0a8icazISjPG5agQTOmguUc2hz7zt2wf0qiof6GKT4EKPhQe9F4g/exec";
 
-      console.log('Form data:', data);
+      if (!sheetUrl) {
+        throw new Error('Google Sheets URL not configured');
+      }
+
+      // Use proxy to call Google Sheets API
+      const proxyUrl = `http://proxy.zarrx.com/?url=${encodeURIComponent(sheetUrl)}`;
+
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'ai-square-contact', // Distinguishes this form from others
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          company: data.company || '',
+          subject: data.subject,
+          message: data.message,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Form submitted successfully:', result);
 
       setSubmitStatus('success');
       form.reset();
@@ -60,6 +85,11 @@ export function ContactForm() {
     } catch (error) {
       console.error('Form submission error:', error);
       setSubmitStatus('error');
+
+      // Hide error message after 5 seconds
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 5000);
     }
   };
 
