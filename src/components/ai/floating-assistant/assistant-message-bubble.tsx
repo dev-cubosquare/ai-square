@@ -4,6 +4,7 @@ import type { UIMessage } from "ai";
 import { motion } from "motion/react";
 
 import { Response } from "./components/response";
+import { StreamingText } from "./components/streaming-text";
 import { cn } from "@/lib/utils";
 import type {
   AssistantComponentPayload,
@@ -62,9 +63,11 @@ export function Notification({
 export function TextMessageBubble({
   role,
   text,
+  isStreaming = false,
 }: {
   role: UIMessage["role"];
   text: string;
+  isStreaming?: boolean;
 }) {
   const bubbleClasses = cn(
     "flex-1 rounded-2xl border px-4 py-3 shadow-[0_18px_36px_-28px_rgba(56,189,248,0.55)] backdrop-blur-sm transition-colors duration-300",
@@ -76,13 +79,27 @@ export function TextMessageBubble({
   return (
     <motion.div
       className="flex items-end gap-2"
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.5 }}
+      initial={{ opacity: 0, x: role === "user" ? 20 : -20, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{
+        delay: 0.1,
+        type: "spring",
+        stiffness: 260,
+        damping: 20,
+      }}
     >
-      <div className={bubbleClasses}>
-        <Response className="text-sm">{text}</Response>
-      </div>
+      <motion.div
+        className={bubbleClasses}
+        initial={{ y: 10 }}
+        animate={{ y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        {role === "assistant" && isStreaming ? (
+          <StreamingText text={text} isStreaming={isStreaming} className="text-sm" />
+        ) : (
+          <Response className="text-sm">{text}</Response>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

@@ -4,7 +4,7 @@ import type { ChatStatus, UIMessage } from "ai";
 import { motion } from "motion/react";
 import { Fragment, useMemo } from "react";
 
-import { Loader } from "./components/loader";
+import { TypingIndicator } from "./components/typing-indicator";
 import { Message, MessageContent } from "./components/message";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -56,7 +56,7 @@ export function FloatingAssistantMessageList({
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.4, type: "spring" }}
             >
-              <div className="flex size-20 items-center justify-center rounded-full bg-linear-to-br from-primary via-[#86c940] to-[#9dd958] shadow-lg">
+              <div className="flex size-20 items-center justify-center rounded-full bg-white/10 border border-white/20 shadow-lg">
                 <SquareAILogo size={48} className="text-white" />
               </div>
               <motion.div
@@ -112,7 +112,7 @@ export function FloatingAssistantMessageList({
                 <motion.button
                   type="button"
                   key={question}
-                  className="text-left text-sm bg-background hover:bg-muted border border-border rounded-lg p-3 transition-colors"
+                  className="text-center text-sm bg-background hover:bg-muted border border-border rounded-full cursor-help p-3 transition-colors"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.8 + index * 0.1 }}
@@ -127,66 +127,113 @@ export function FloatingAssistantMessageList({
           </motion.div>
         )}
 
-        {messages.map((message) => (
-          <Message
-            from={message.role}
-            key={message.id}
-            className={cn(message.role === "assistant" ? "items-start" : "")}
-          >
-            <MessageContent className="bg-transparent! p-0 rounded-none" >
-              {message.parts.map((part, index) => {
-                if(part.type === 'tool-submitSpecificRequest' || part.type === 'tool-submitRequest') {
-                  return <GenericToolCall key={index} part={part} title="Submit" />;
-                }
+        {messages.map((message, messageIndex) => {
+          // Check if this is the last message and if we're currently streaming
+          const isLastMessage = messageIndex === messages.length - 1;
+          const isStreaming = isLastMessage && status === "streaming";
 
-                if (part.type !== "text" || !part.text) return null;
+          return (
+            <Message
+              from={message.role}
+              key={message.id}
+              className={cn(message.role === "assistant" ? "items-start" : "")}
+            >
+              <MessageContent className="bg-transparent! p-0 rounded-none">
+                {message.parts.map((part, index) => {
+                  if (
+                    part.type === "tool-submitSpecificRequest" ||
+                    part.type === "tool-submitRequest"
+                  ) {
+                    return <GenericToolCall key={index} part={part} title="Submit" />;
+                  }
 
-                const { component, text: withoutComponent } = extractComponent(
-                  part.text,
-                );
-                let cleanedText = stripTaggedSection(
-                  stripTaggedSection(withoutComponent, "form-data"),
-                  "component",
-                );
-                // Strip quick-reply section
-                cleanedText = stripTaggedSection(cleanedText, "quick-reply");
-                // Remove [Request interrupted by user] text
-                cleanedText = cleanedText
-                  .replace(/\[Request interrupted by user\]/gi, "")
-                  .trim();
+                  if (part.type !== "text" || !part.text) return null;
 
-                return (
-                  <Fragment key={`${message.id}-${index}-group`}>
-                    {component ? (
-                      <ComponentMessageBubble component={component} />
-                    ) : null}
-                    {shouldRenderTextBubble(
-                      component,
-                      cleanedText,
-                      message.role,
-                    ) ? (
-                      <TextMessageBubble
-                        role={message.role}
-                        text={cleanedText}
-                      />
-                    ) : null}
-                  </Fragment>
-                );
-              })}
+                  const { component, text: withoutComponent } = extractComponent(
+                    part.text,
+                  );
+                  let cleanedText = stripTaggedSection(
+                    stripTaggedSection(withoutComponent, "form-data"),
+                    "component",
+                  );
+                  // Strip quick-reply section
+                  cleanedText = stripTaggedSection(cleanedText, "quick-reply");
+                  // Remove [Request interrupted by user] text
+                  cleanedText = cleanedText
+                    .replace(/\[Request interrupted by user\]/gi, "")
+                    .trim();
+
+                  return (
+                    <Fragment key={`${message.id}-${index}-group`}>
+                      {component ? (
+                        <ComponentMessageBubble component={component} />
+                      ) : null}
+                      {shouldRenderTextBubble(component, cleanedText, message.role) ? (
+                        <TextMessageBubble
+                          role={message.role}
+                          text={cleanedText}
+                          isStreaming={isStreaming && message.role === "assistant"}
+                        />
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
+              </MessageContent>
+              {message.role === "assistant" ? (
+                <motion.div
+                  className="flex size-8 items-center justify-center rounded-full bg-white/10 border border-white/20"
+                  animate={
+                    isStreaming
+                      ? {
+                          boxShadow: [
+                            "0 0 0 0 rgba(107, 176, 42, 0.4)",
+                            "0 0 0 8px rgba(107, 176, 42, 0)",
+                            "0 0 0 0 rgba(107, 176, 42, 0)",
+                          ],
+                        }
+                      : {}
+                  }
+                  transition={{
+                    duration: 1.5,
+                    repeat: isStreaming ? Number.POSITIVE_INFINITY : 0,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <SquareAILogo size={24} className="text-white" />
+                </motion.div>
+              ) : (
+                <Avatar className="size-8 ring-1 ring-border">
+                  <AvatarFallback>ME</AvatarFallback>
+                </Avatar>
+              )}
+            </Message>
+          );
+        })}
+
+        {status === "submitted" && (
+          <Message from="assistant" className="items-start">
+            <MessageContent className="bg-transparent! p-0 rounded-none">
+              <TypingIndicator />
             </MessageContent>
-            {message.role === "assistant" ? (
-              <div className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#86c940]">
-                <SquareAILogo size={24} className="text-white" />
-              </div>
-            ) : (
-              <Avatar className="size-8 ring-1 ring-border">
-                <AvatarFallback>ME</AvatarFallback>
-              </Avatar>
-            )}
+            <motion.div
+              className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#86c940]"
+              animate={{
+                boxShadow: [
+                  "0 0 0 0 rgba(107, 176, 42, 0.4)",
+                  "0 0 0 8px rgba(107, 176, 42, 0)",
+                  "0 0 0 0 rgba(107, 176, 42, 0)",
+                ],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Number.POSITIVE_INFINITY,
+                ease: "easeInOut",
+              }}
+            >
+              <SquareAILogo size={24} className="text-white" />
+            </motion.div>
           </Message>
-        ))}
-
-        {status === "submitted" && <Loader />}
+        )}
       </div>
       <ScrollButton />
     </ScrollArea>

@@ -11,7 +11,7 @@ import PopupHeader from "./components/popup-header";
 import { PromptInputInput } from "./components/prompt-input-simple";
 
 import { FloatingAssistantMessageList } from "./assistant-message-list";
-import { AssistantSoundToggle } from "./assistant-sound-toggle";
+import { AssistantSettingsMenu } from "./assistant-settings-menu";
 import type { DragConstraints } from "./use-floating-assistant-state";
 import { SquareAILogo } from "./components/square-ai-logo";
 
@@ -126,10 +126,10 @@ export function FloatingAssistantPanel({
               <PopupHeader
                 className={panelDragProps.drag ? "cursor-move" : ""}
                 onClose={onClose}
-                title="Square AI Assistant"
-                subtitle="Live product guidance"
+                title="Square AI"
+                subtitle="Powering intelligent customer experiences"
                 onPointerDown={handleHeaderPointerDown}
-                actions={<AssistantSoundToggle />}
+                actions={<AssistantSettingsMenu />}
                 icon={<SquareAILogo size={32} />}
               />
 
@@ -147,13 +147,13 @@ export function FloatingAssistantPanel({
                       <motion.button
                         type="button"
                         key={suggestion}
-                        className="group relative flex min-w-[220px] max-w-[320px] items-center gap-3 overflow-hidden rounded-xl border border-white/12 bg-background/70 px-4 py-3 text-left text-sm text-foreground/75 shadow-[0_14px_30px_-24px_rgba(107,176,42,0.55)] transition-all duration-200 backdrop-blur-sm hover:-translate-y-1 hover:border-primary/45 hover:text-foreground"
+                        className="group relative flex min-w-[220px] max-w-[320px] items-center gap-3 overflow-hidden rounded-full cursor-help border border-white/12 bg-background/70 px-4 py-3 text-left text-sm text-foreground/75 shadow-[0_14px_30px_-24px_rgba(107,176,42,0.55)] transition-all duration-200 backdrop-blur-sm hover:-translate-y-1 hover:border-primary/45 hover:text-foreground"
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.985 }}
                         onClick={() => onQuickSend(suggestion)}
                       >
                         <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-white/0 via-primary/8 to-[#9dd958]/8 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        <span className="relative z-10 flex size-2.5 shrink-0 rounded-full bg-linear-to-br from-primary via-[#86c940] to-[#9dd958] shadow-[0_0_14px_rgba(107,176,42,0.85)]" />
+                        {/* <span className="relative z-10 flex size-2.5 shrink-0 rounded-full bg-linear-to-br from-primary via-[#86c940] to-[#9dd958] shadow-[0_0_14px_rgba(107,176,42,0.85)]" /> */}
                         <span className="relative z-10 flex-1 text-sm font-medium leading-snug text-left text-foreground whitespace-normal">
                           {suggestion}
                         </span>
