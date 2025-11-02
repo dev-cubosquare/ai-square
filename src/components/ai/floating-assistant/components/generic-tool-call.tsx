@@ -1,8 +1,9 @@
 "use client";
 
 import type { ToolUIPart } from "ai";
-import { ScrollArea, ScrollBar } from "./scroll-area";
 import { Tool, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
 
 interface GenericToolCallProps {
   part: ToolUIPart;
@@ -15,7 +16,7 @@ export function GenericToolCall({ part, title }: GenericToolCallProps) {
   return (
     <Tool>
       <ToolHeader type={part.type} title={title || "Submit"} state={part.state} />
-      <ScrollArea className="max-w-full">
+      <ScrollArea>
         <ToolInput input={part.input} />
         {hasOutput && (
           <ToolOutput

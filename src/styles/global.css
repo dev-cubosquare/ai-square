@@ -120,3 +120,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+#scroll-without-table>[data-radix-scroll-area-viewport]>div[style*='display: table'] {
+  display: block !important;
+}

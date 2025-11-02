@@ -40,7 +40,7 @@ export function FloatingAssistantMessageList({
   }, []);
 
   return (
-    <ScrollArea mode="stick-to-bottom" className="h-svh px-2">
+    <ScrollArea mode="stick-to-bottom" id="scroll-without-table" className="h-svh px-2">
       <div className="flex flex-col gap-4 py-4">
         {messages.length === 0 && (
           <motion.div
