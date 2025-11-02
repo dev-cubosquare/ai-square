@@ -8,6 +8,7 @@ type ChatHelpers = UseChatHelpers<UIMessage>;
 
 interface FloatingAssistantContextValue
   extends Pick<ChatHelpers, "messages" | "sendMessage" | "status"> {
+  clearChat: () => void;
   closeAssistant: () => void;
   isAssistantOpen: boolean;
   isMuted: boolean;

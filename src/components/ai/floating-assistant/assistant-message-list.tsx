@@ -56,7 +56,7 @@ export function FloatingAssistantMessageList({
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.4, type: "spring" }}
             >
-              <div className="flex size-20 items-center justify-center rounded-full bg-linear-to-br from-primary via-[#86c940] to-[#9dd958] shadow-lg">
+              <div className="flex size-20 items-center justify-center rounded-full bg-white/10 border border-white/20 shadow-lg">
                 <SquareAILogo size={48} className="text-white" />
               </div>
               <motion.div

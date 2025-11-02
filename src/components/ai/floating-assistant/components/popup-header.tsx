@@ -52,7 +52,10 @@ function PopupHeader({
           {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div
+        className="flex items-center gap-1"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         {actions}
         {onClose && (
           <Button

@@ -11,7 +11,7 @@ import PopupHeader from "./components/popup-header";
 import { PromptInputInput } from "./components/prompt-input-simple";
 
 import { FloatingAssistantMessageList } from "./assistant-message-list";
-import { AssistantSoundToggle } from "./assistant-sound-toggle";
+import { AssistantSettingsMenu } from "./assistant-settings-menu";
 import type { DragConstraints } from "./use-floating-assistant-state";
 import { SquareAILogo } from "./components/square-ai-logo";
 
@@ -129,7 +129,7 @@ export function FloatingAssistantPanel({
                 title="Square AI"
                 subtitle="Powering intelligent customer experiences"
                 onPointerDown={handleHeaderPointerDown}
-                actions={<AssistantSoundToggle />}
+                actions={<AssistantSettingsMenu />}
                 icon={<SquareAILogo size={32} />}
               />
 

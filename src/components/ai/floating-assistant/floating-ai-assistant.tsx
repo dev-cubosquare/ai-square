@@ -26,6 +26,9 @@ const DEFAULT_SUGGESTIONS: string[] = [
 ];
 
 const SOUND_STORAGE_KEY = "square-ai-assistant-muted";
+const CHAT_STORAGE_KEY = "square-ai-assistant-chat";
+const READ_STATUS_STORAGE_KEY = "square-ai-assistant-read-status";
+const CHAT_TTL = 2 * 60 * 60 * 1000; // 2 hours in milliseconds - chat resets after 2 hours of inactivity
 const SEND_SOUND_URL = "/sounds/woosh.wav";
 const RECEIVE_SOUND_URL = "/sounds/soap-bubble.wav";
 
@@ -47,11 +50,11 @@ export function FloatingAIAssistant({
   defaultPosition,
   draggable = true,
 }: FloatingAIAssistantProps) {
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
     api: 'https://square-ai-chat.csqr.app/chat/ui',
   }),
-    
+
     onError: (error) => {
       console.error("Chat error:", error);
     },
@@ -96,6 +99,7 @@ export function FloatingAIAssistant({
     draggable: safeDraggable,
   });
 
+  // Load mute preference
   useEffect(() => {
     if (typeof window === "undefined") return;
     const storedValue = window.localStorage.getItem(SOUND_STORAGE_KEY);
@@ -103,6 +107,68 @@ export function FloatingAIAssistant({
       setIsMuted(storedValue === "true");
     }
   }, []);
+
+  // Load chat messages from storage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const storedData = window.localStorage.getItem(CHAT_STORAGE_KEY);
+      if (storedData) {
+        const { messages: savedMessages, timestamp } = JSON.parse(storedData);
+        const now = Date.now();
+
+        // Check if stored messages are still valid (within TTL)
+        if (now - timestamp < CHAT_TTL && Array.isArray(savedMessages) && savedMessages.length > 0) {
+          setMessages(savedMessages);
+        } else {
+          // Clear expired messages
+          window.localStorage.removeItem(CHAT_STORAGE_KEY);
+          window.localStorage.removeItem(READ_STATUS_STORAGE_KEY);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to load chat messages:", error);
+      window.localStorage.removeItem(CHAT_STORAGE_KEY);
+      window.localStorage.removeItem(READ_STATUS_STORAGE_KEY);
+    }
+  }, [setMessages]);
+
+  // Load read status from storage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const storedReadStatus = window.localStorage.getItem(READ_STATUS_STORAGE_KEY);
+      if (storedReadStatus) {
+        const { lastReadMessageId, hasUnread } = JSON.parse(storedReadStatus);
+        if (lastReadMessageId) {
+          lastReadMessageIdRef.current = lastReadMessageId;
+        }
+        if (typeof hasUnread === "boolean") {
+          setHasUnreadMessages(hasUnread);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to load read status:", error);
+      window.localStorage.removeItem(READ_STATUS_STORAGE_KEY);
+    }
+  }, []);
+
+  // Save chat messages to storage whenever they change
+  useEffect(() => {
+    if (typeof window === "undefined" || messages.length === 0) return;
+
+    try {
+      const dataToStore = {
+        messages,
+        timestamp: Date.now(),
+      };
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(dataToStore));
+    } catch (error) {
+      console.warn("Failed to save chat messages:", error);
+    }
+  }, [messages]);
 
   const toggleMuted = useCallback(() => {
     setIsMuted((prev) => {
@@ -255,6 +321,21 @@ export function FloatingAIAssistant({
     }
   }, [isExpanded, messages]);
 
+  // Save read status to storage whenever it changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const readStatus = {
+        lastReadMessageId: lastReadMessageIdRef.current,
+        hasUnread: hasUnreadMessages,
+      };
+      window.localStorage.setItem(READ_STATUS_STORAGE_KEY, JSON.stringify(readStatus));
+    } catch (error) {
+      console.warn("Failed to save read status:", error);
+    }
+  }, [hasUnreadMessages]);
+
   // Show welcome message after 5 seconds if no messages
   useEffect(() => {
     if (hasShownWelcome || messages.length > 0 || !isReady) return;
@@ -304,6 +385,17 @@ export function FloatingAIAssistant({
     }
   }, [isExpanded, toggleExpanded]);
 
+  const clearChat = useCallback(() => {
+    setMessages([]);
+    setHasUnreadMessages(false);
+    lastReadMessageIdRef.current = null;
+    setLastAssistantMessage("");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(CHAT_STORAGE_KEY);
+      window.localStorage.removeItem(READ_STATUS_STORAGE_KEY);
+    }
+  }, [setMessages]);
+
   const contextValue = useMemo(
     () => ({
       messages,
@@ -315,6 +407,7 @@ export function FloatingAIAssistant({
       isAssistantOpen: isExpanded,
       isMuted,
       toggleMuted,
+      clearChat,
     }),
     [
       closeAssistant,
@@ -326,6 +419,7 @@ export function FloatingAIAssistant({
       status,
       toggleMuted,
       toggleExpanded,
+      clearChat,
     ],
   );
 
