@@ -9,6 +9,8 @@ import { useFloatingAssistant } from "./floating-assistant-context";
 export function AssistantSoundToggle() {
   const { isMuted, toggleMuted } = useFloatingAssistant();
 
+  return null
+
   return (
     <Button
       type="button"

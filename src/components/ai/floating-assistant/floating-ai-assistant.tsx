@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
 import {
   type ReactNode,
   useCallback,
@@ -21,10 +22,7 @@ import {
 } from "./use-floating-assistant-state";
 import { DefaultChatTransport } from "ai";
 
-const QUICK_SUGGESTIONS = [
-  "What services does Square AI offer?",
-  "How can AI help my business?",
-  "Tell me about your solutions.",
+const DEFAULT_SUGGESTIONS: string[] = [
 ];
 
 const SOUND_STORAGE_KEY = "square-ai-assistant-muted";
@@ -51,7 +49,7 @@ export function FloatingAIAssistant({
 }: FloatingAIAssistantProps) {
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
-    api: 'http://192.168.1.200:10060/chat/ui',
+    api: 'https://square-ai-chat.csqr.app/chat/ui',
   }),
     
     onError: (error) => {
@@ -60,9 +58,11 @@ export function FloatingAIAssistant({
   });
 
   const [isMuted, setIsMuted] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const sendSoundRef = useRef<HTMLAudioElement | null>(null);
   const receiveSoundRef = useRef<HTMLAudioElement | null>(null);
   const lastMessageIdRef = useRef<string | null>(null);
+  const lastProcessedMessageIdRef = useRef<string | null>(null);
 
   const isMobile = useIsMobile();
   const safeDraggable = draggable && !isMobile;
@@ -142,12 +142,29 @@ export function FloatingAIAssistant({
   useEffect(() => {
     if (messages.length === 0) {
       lastMessageIdRef.current = null;
+      lastProcessedMessageIdRef.current = null;
+      setSuggestions(DEFAULT_SUGGESTIONS);
       return;
     }
 
     const latestMessage = messages[messages.length - 1];
     if (!latestMessage?.id) return;
 
+    // Extract quick-reply suggestions from assistant messages
+    // Only process when streaming is complete and we haven't processed this message yet
+    if (
+      latestMessage.role === "assistant" &&
+      status !== "streaming" &&
+      lastProcessedMessageIdRef.current !== latestMessage.id
+    ) {
+      const quickReplies = extractQuickReplies(latestMessage);
+      if (quickReplies.length > 0) {
+        setSuggestions(quickReplies);
+      }
+      lastProcessedMessageIdRef.current = latestMessage.id;
+    }
+
+    // Handle sound effects
     if (!lastMessageIdRef.current) {
       lastMessageIdRef.current = latestMessage.id;
       return;
@@ -174,7 +191,7 @@ export function FloatingAIAssistant({
     void targetAudio.play().catch((error) => {
       console.warn("Assistant sound playback failed:", error);
     });
-  }, [isMuted, messages]);
+  }, [isMuted, messages, status]);
 
   const openAssistant = useCallback(() => {
     if (!isExpanded) {
@@ -272,10 +289,58 @@ export function FloatingAIAssistant({
         open={isExpanded}
         panelDragProps={panelDragProps}
         status={status}
-        suggestions={QUICK_SUGGESTIONS}
+        suggestions={suggestions}
       />
     </FloatingAssistantContextProvider>
   );
+}
+
+function extractQuickReplies(message: UIMessage): string[] {
+  const replies: string[] = [];
+
+  for (const part of message.parts) {
+    if (part.type !== "text") continue;
+
+    // The text might be in different properties depending on the state
+    const textContent = (part as any).text || (part as any).content || '';
+    if (!textContent) continue;
+
+    const match = matchTaggedSection(textContent, "quick-reply");
+    if (!match) continue;
+
+    const lines = match.json
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    for (const line of lines) {
+      // Remove leading dash/bullet and trim
+      const cleaned = line.replace(/^[-•*]\s*/, "").trim();
+      if (cleaned) {
+        replies.push(cleaned);
+      }
+    }
+  }
+
+  return replies;
+}
+
+function matchTaggedSection(
+  text: string,
+  tag: string,
+): { json: string; stripped: string } | null {
+  const startToken = `[${tag}]`;
+  const endToken = `[/${tag}]`;
+  const start = text.indexOf(startToken);
+  const end = text.indexOf(endToken);
+
+  if (start === -1 || end === -1 || end <= start) return null;
+
+  const json = text.slice(start + startToken.length, end).trim();
+  const stripped =
+    text.slice(0, start) + text.slice(end + endToken.length, text.length);
+
+  return { json, stripped };
 }
 
 function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
