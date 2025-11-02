@@ -24,7 +24,7 @@ export const Suggestions = ({
   };
 
   return (
-    <ScrollArea className="w-full overflow-x-auto whitespace-nowrap" {...props}>
+    <ScrollArea  className="h-auto" {...props}>
       <div
         ref={scrollRef}
         onWheel={handleWheel}
