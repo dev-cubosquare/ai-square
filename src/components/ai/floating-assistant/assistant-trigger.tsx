@@ -108,12 +108,15 @@ export function FloatingAssistantTrigger({
               ref={triggerRef}
               size="lg"
               onClick={onToggle}
-              className={cn(
-                "relative h-14 w-14 rounded-full shadow-2xl",
-                "bg-linear-to-br from-primary via-[#86c940] to-[#9dd958]",
-                "hover:shadow-primary/50 transition-shadow duration-300",
-                triggerDragProps.drag && "cursor-grab active:cursor-grabbing",
-              )}
+className={cn(
+  "relative h-14 w-14 rounded-full shadow-2xl backdrop-blur-md backdrop-saturate-150",
+  "bg-white/10 border border-white/20",
+  "hover:bg-white/20 hover:shadow-primary/40 transition-all duration-300",
+  triggerDragProps.drag && "cursor-grab active:cursor-grabbing",
+  "p-0"
+)}
+
+
               onPointerEnter={handleHoverStart}
               onPointerMove={onPointerMove}
               onPointerLeave={handleHoverEnd}
@@ -124,7 +127,7 @@ export function FloatingAssistantTrigger({
                 aria-hidden
                 animate={{ rotate: [0, 8, -8, 0] }}
                 transition={wiggleTransition}
-                className="relative flex size-full items-center justify-center"
+                className="relative flex size-full items-center justify-center pointer-events-none"
               >
                 <SquareAILogo size={32} className="text-white" />
               </motion.div>
