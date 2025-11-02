@@ -1,7 +1,7 @@
 "use client";
 
 import type { MotionValue } from "motion/react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,10 @@ const wiggleTransition = {
 interface FloatingAssistantTriggerProps {
   buttonX: MotionValue<number>;
   buttonY: MotionValue<number>;
+  hasUnreadMessages?: boolean;
   isDragging: boolean;
   isReady: boolean;
+  lastAssistantMessage?: string;
   onHideTooltip: () => void;
   onShowTooltip: () => void;
   onToggle: () => void;
@@ -57,8 +59,10 @@ interface FloatingAssistantTriggerProps {
 export function FloatingAssistantTrigger({
   buttonX,
   buttonY,
+  hasUnreadMessages = false,
   isDragging,
   isReady,
+  lastAssistantMessage,
   onHideTooltip,
   onPointerMove,
   onShowTooltip,
@@ -81,6 +85,9 @@ export function FloatingAssistantTrigger({
     onHideTooltip();
     resetTooltipMotion();
   };
+
+  // Show tooltip by default if there's an unread message
+  const shouldShowTooltip = showTooltip || hasUnreadMessages;
 
   return (
     <motion.div className="pointer-events-none fixed inset-0 z-9998">
@@ -131,28 +138,57 @@ className={cn(
               >
                 <SquareAILogo size={32} className="text-white" />
               </motion.div>
-              <motion.span
-                aria-hidden
-                className="absolute bottom-0 right-0 flex h-3 w-3 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{
-                  delay: 0.45,
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 18,
-                }}
-              />
+              <AnimatePresence>
+                {hasUnreadMessages && (
+                  <motion.span
+                    key="unread-badge"
+                    aria-label="New message"
+                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary shadow-lg ring-2 ring-background"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 18,
+                    }}
+                  >
+                    <motion.span
+                      className="absolute inset-0 rounded-full bg-primary"
+                      animate={{
+                        scale: [1, 1.4, 1],
+                        opacity: [0.8, 0, 0.8],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "easeInOut",
+                      }}
+                    />
+                    <span className="relative text-[10px] font-bold text-white">
+                      1
+                    </span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </Button>
           </motion.div>
           <FloatingAssistantTooltip
-            open={showTooltip}
+            open={shouldShowTooltip}
             rotate={tooltipRotate}
             translateX={tooltipTranslateX}
           >
-            <p className="text-sm text-foreground text-center font-medium">
-              Hi! I'm Square AI. How can I help you today?
-            </p>
+            {lastAssistantMessage ? (
+              <div className="space-y-1.5">
+                <p className="text-sm text-foreground leading-relaxed">
+                  {lastAssistantMessage}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground text-center font-medium">
+                Hi! I'm Square AI. How can I help you today?
+              </p>
+            )}
           </FloatingAssistantTooltip>
         </motion.div>
       </motion.div>

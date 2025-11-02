@@ -59,10 +59,14 @@ export function FloatingAIAssistant({
 
   const [isMuted, setIsMuted] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [lastAssistantMessage, setLastAssistantMessage] = useState<string>("");
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
   const sendSoundRef = useRef<HTMLAudioElement | null>(null);
   const receiveSoundRef = useRef<HTMLAudioElement | null>(null);
   const lastMessageIdRef = useRef<string | null>(null);
   const lastProcessedMessageIdRef = useRef<string | null>(null);
+  const lastReadMessageIdRef = useRef<string | null>(null);
 
   const isMobile = useIsMobile();
   const safeDraggable = draggable && !isMobile;
@@ -119,14 +123,44 @@ export function FloatingAIAssistant({
     sendAudio.volume = 0.45;
     receiveAudio.volume = 0.6;
 
+    // Preload audio files
+    sendAudio.load();
+    receiveAudio.load();
+
     sendSoundRef.current = sendAudio;
     receiveSoundRef.current = receiveAudio;
+
+    // Prime audio on first user interaction
+    const primeAudio = () => {
+      sendAudio.play().then(() => {
+        sendAudio.pause();
+        sendAudio.currentTime = 0;
+      }).catch(() => {
+        // Ignore errors, this is just priming
+      });
+      receiveAudio.play().then(() => {
+        receiveAudio.pause();
+        receiveAudio.currentTime = 0;
+      }).catch(() => {
+        // Ignore errors, this is just priming
+      });
+
+      // Remove listener after first interaction
+      document.removeEventListener("click", primeAudio);
+      document.removeEventListener("touchstart", primeAudio);
+    };
+
+    // Listen for first user interaction
+    document.addEventListener("click", primeAudio, { once: true });
+    document.addEventListener("touchstart", primeAudio, { once: true });
 
     return () => {
       sendAudio.pause();
       receiveAudio.pause();
       sendSoundRef.current = null;
       receiveSoundRef.current = null;
+      document.removeEventListener("click", primeAudio);
+      document.removeEventListener("touchstart", primeAudio);
     };
   }, []);
 
@@ -143,12 +177,26 @@ export function FloatingAIAssistant({
     if (messages.length === 0) {
       lastMessageIdRef.current = null;
       lastProcessedMessageIdRef.current = null;
+      lastReadMessageIdRef.current = null;
       setSuggestions(DEFAULT_SUGGESTIONS);
+      setLastAssistantMessage("");
       return;
     }
 
     const latestMessage = messages[messages.length - 1];
     if (!latestMessage?.id) return;
+
+    // Extract and store last assistant message for preview
+    if (latestMessage.role === "assistant") {
+      const messageText = extractMessageText(latestMessage);
+      if (messageText) {
+        setLastAssistantMessage(messageText);
+        // Mark as unread only if it's a NEW message (different from last read) and panel is closed
+        if (!isExpanded && lastReadMessageIdRef.current !== latestMessage.id) {
+          setHasUnreadMessages(true);
+        }
+      }
+    }
 
     // Extract quick-reply suggestions from assistant messages
     // Only process when streaming is complete and we haven't processed this message yet
@@ -191,11 +239,62 @@ export function FloatingAIAssistant({
     void targetAudio.play().catch((error) => {
       console.warn("Assistant sound playback failed:", error);
     });
-  }, [isMuted, messages, status]);
+  }, [isMuted, messages, status, isExpanded]);
+
+  // Mark messages as read when panel opens
+  useEffect(() => {
+    if (isExpanded) {
+      setHasUnreadMessages(false);
+      // Update last read message ID to the latest message
+      if (messages.length > 0) {
+        const latestMessage = messages[messages.length - 1];
+        if (latestMessage?.id) {
+          lastReadMessageIdRef.current = latestMessage.id;
+        }
+      }
+    }
+  }, [isExpanded, messages]);
+
+  // Show welcome message after 5 seconds if no messages
+  useEffect(() => {
+    if (hasShownWelcome || messages.length > 0 || !isReady) return;
+
+    const timer = setTimeout(() => {
+      const welcomeMessage = "Hi! I'm Square AI Assistant. I can help you with product information, services, and answer your questions. How can I assist you today?";
+      setLastAssistantMessage(welcomeMessage);
+      setHasUnreadMessages(true);
+      setHasShownWelcome(true);
+
+      // Play pop sound for welcome message
+      if (!isMuted && receiveSoundRef.current) {
+        receiveSoundRef.current.currentTime = 0;
+        void receiveSoundRef.current.play().catch((error) => {
+          console.warn("Welcome message sound playback failed:", error);
+        });
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [hasShownWelcome, messages.length, isReady, isMuted]);
 
   const openAssistant = useCallback(() => {
     if (!isExpanded) {
       toggleExpanded();
+
+      // Prime audio when opening assistant for the first time
+      if (sendSoundRef.current && receiveSoundRef.current) {
+        const primeIfNeeded = (audio: HTMLAudioElement) => {
+          audio.play().then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+          }).catch(() => {
+            // Ignore errors
+          });
+        };
+
+        primeIfNeeded(sendSoundRef.current);
+        primeIfNeeded(receiveSoundRef.current);
+      }
     }
   }, [isExpanded, toggleExpanded]);
 
@@ -263,10 +362,12 @@ export function FloatingAIAssistant({
           buttonY={buttonY}
           isDragging={isDragging}
           isReady={isReady}
+          hasUnreadMessages={hasUnreadMessages}
+          lastAssistantMessage={lastAssistantMessage}
           onHideTooltip={() => setShowTooltip(false)}
           onPointerMove={handleTooltipPointerMove}
           onShowTooltip={() => setShowTooltip(true)}
-          onToggle={toggleExpanded}
+          onToggle={openAssistant}
           resetTooltipMotion={resetTooltipMotion}
           showTooltip={showTooltip}
           tooltipRotate={tooltipRotate}
@@ -295,6 +396,36 @@ export function FloatingAIAssistant({
   );
 }
 
+function extractMessageText(message: UIMessage): string {
+  for (const part of message.parts) {
+    if (part.type !== "text") continue;
+
+    const textContent = (part as any).text || (part as any).content || "";
+    if (!textContent) continue;
+
+    // Strip tagged sections to get clean text
+    let cleanText = textContent;
+    cleanText = stripTaggedSection(cleanText, "component");
+    cleanText = stripTaggedSection(cleanText, "form-data");
+    cleanText = stripTaggedSection(cleanText, "quick-reply");
+    cleanText = cleanText.replace(/\[Request interrupted by user\]/gi, "").trim();
+
+    if (cleanText) {
+      // Limit to first 100 characters for preview
+      return cleanText.length > 100
+        ? cleanText.substring(0, 100) + "..."
+        : cleanText;
+    }
+  }
+
+  return "";
+}
+
+function stripTaggedSection(text: string, tag: string): string {
+  const pattern = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`, "gi");
+  return text.replace(pattern, "");
+}
+
 function extractQuickReplies(message: UIMessage): string[] {
   const replies: string[] = [];
 
@@ -302,7 +433,7 @@ function extractQuickReplies(message: UIMessage): string[] {
     if (part.type !== "text") continue;
 
     // The text might be in different properties depending on the state
-    const textContent = (part as any).text || (part as any).content || '';
+    const textContent = (part as any).text || (part as any).content || "";
     if (!textContent) continue;
 
     const match = matchTaggedSection(textContent, "quick-reply");
