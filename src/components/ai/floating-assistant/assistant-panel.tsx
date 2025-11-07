@@ -315,22 +315,58 @@ export function FloatingAssistantPanel({
       };
       
       ws.onmessage = (event) => {
-        
+        console.log('WebSocket message received:', event.data);
         try {
-          const data = JSON.parse(event.data);
-          
-          if (data.transcript) {
-            setCapturedText(data.transcript);
-            setStreamingStatus(`Transcript: "${data.transcript}"`);
-          } else if (data.type === 'TurnInfo') {
+          // Check if the message is JSON-formatted
+          const isJSON = (str: any) => {
+            try {
+              JSON.parse(str);
+              return true;
+            } catch {
+              return false;
+            }
+          };
+
+          if (isJSON(event.data)) {
+            const transcriptionResult = JSON.parse(event.data);
+            console.log('Parsed transcriptionResult:', transcriptionResult);
+
+            const transcript = transcriptionResult.transcript;
+
+            if (transcript.length > 0) {
+              console.log('Final transcript received:', transcript);
+
+              const messages = [
+                {
+                  id: crypto.randomUUID(),
+                  role: 'user',
+                  content: transcript,
+                  parts: [
+                    {
+                      type: 'text',
+                      text: transcript,
+                    },
+                  ],
+                },
+              ];
+
+              console.log('Sending transcript to WebSocket:', transcript);
+              ws.send(transcript);
+
+              console.log('Auto-filling input field with transcript:', transcript);
+              setTranscript(transcript);
+
+              console.log('Automatically sending transcript as a message:', transcript);
+              onPromptSubmit({ text: transcript });
+            }
           } else {
+            // Handle plain text messages
+            console.log('Plain text message received:', event.data);
+            setTranscript(event.data);
+            onPromptSubmit({ text: event.data });
           }
         } catch (error) {
-          // Handle non-JSON responses
-          if (typeof event.data === 'string' && event.data.includes('transcript')) {
-            setCapturedText(event.data);
-            setStreamingStatus(`Response: ${event.data.substring(0, 50)}...`);
-          }
+          console.error('Failed to process WebSocket message:', error);
         }
       };
       
@@ -568,17 +604,16 @@ export function FloatingAssistantPanel({
 
                 <div onPointerDown={(event) => event.stopPropagation()}>
                   <Suggestions className="py-3 [&>div]:w-full [&>div]:gap-3">
-                    {suggestions.map((suggestion) => (
+                    {suggestions.map((suggestion, index) => (
                       <motion.button
                         type="button"
-                        key={suggestion}
+                        key={`${suggestion}-${index}`}
                         className="group relative flex min-w-[220px] max-w-[320px] items-center gap-3 overflow-hidden rounded-full cursor-help border border-white/12 bg-background/70 px-4 py-3 text-left text-sm text-foreground/75 shadow-[0_14px_30px_-24px_rgba(107,176,42,0.55)] transition-all duration-200 backdrop-blur-sm hover:-translate-y-1 hover:border-primary/45 hover:text-foreground"
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.985 }}
                         onClick={() => onQuickSend(suggestion)}
                       >
                         <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-white/0 via-primary/8 to-[#9dd958]/8 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        {/* <span className="relative z-10 flex size-2.5 shrink-0 rounded-full bg-linear-to-br from-primary via-[#86c940] to-[#9dd958] shadow-[0_0_14px_rgba(107,176,42,0.85)]" /> */}
                         <span className="relative z-10 flex-1 text-sm font-medium leading-snug text-left text-foreground whitespace-normal">
                           {suggestion}
                         </span>
@@ -631,15 +666,6 @@ export function FloatingAssistantPanel({
                             className="h-8 w-8 p-0 hover:bg-white/10"
                           >
                             <Headphones className="h-4 w-4 text-primary" />
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleRefreshChat}
-                            className="h-8 w-8 p-0 hover:bg-white/10"
-                          >
-                            <RefreshCw className="h-4 w-4 text-primary" />
                           </Button>
                         </div>
                         
