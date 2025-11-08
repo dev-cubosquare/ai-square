@@ -119,6 +119,11 @@ interface FloatingAssistantPanelProps {
   };
   status: ChatStatus;
   suggestions: string[];
+  audioResponseRef?: React.MutableRefObject<{
+    requestAudio: () => void;
+  } | null>;
+  isAudioResponseEnabled?: boolean;
+  onAudioResponseToggle?: (enabled: boolean) => void;
 }
 
 export function FloatingAssistantPanel({
@@ -134,6 +139,9 @@ export function FloatingAssistantPanel({
   status,
   suggestions,
   isMobile,
+  audioResponseRef,
+  isAudioResponseEnabled = false,
+  onAudioResponseToggle,
 }: FloatingAssistantPanelProps) {
   const dragControls = useDragControls();
   
@@ -154,6 +162,13 @@ export function FloatingAssistantPanel({
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [capturedText, setCapturedText] = useState('');
   const [isStreamingActive, setIsStreamingActive] = useState(false);
+
+  // Audio response state
+  const [audioResponseBuffer, setAudioResponseBuffer] = useState<ArrayBuffer[]>([]);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioResponseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioResponseBufferRef = useRef<ArrayBuffer[]>([]);
 
   // Use refs for immediate control that persists across renders
   const streamingActiveRef = useRef(false);
@@ -291,6 +306,117 @@ export function FloatingAssistantPanel({
     }
   };
 
+  // Audio Response Functions
+  const handleAudioResponseChunk = useCallback((chunk: ArrayBuffer) => {
+    console.log(`📥 Received audio chunk: ${chunk.byteLength} bytes`);
+    setAudioResponseBuffer(prev => {
+      const newBuffer = [...prev, chunk];
+      audioResponseBufferRef.current = newBuffer;
+      return newBuffer;
+    });
+
+    // Clear any existing timeout and set a new one for end-of-stream detection
+    if (audioResponseTimeoutRef.current) {
+      clearTimeout(audioResponseTimeoutRef.current);
+    }
+
+    audioResponseTimeoutRef.current = setTimeout(() => {
+      console.log("🔚 No more audio chunks received, playing response");
+      playAudioResponse();
+    }, 500); // Wait 500ms for more chunks
+  }, []);
+
+  const playAudioResponse = useCallback(async () => {
+    const bufferToPlay = audioResponseBufferRef.current;
+    console.log(`🔊 playAudioResponse called, buffer length: ${bufferToPlay.length}`);
+    
+    if (bufferToPlay.length === 0) {
+      console.log("⚠️ No audio chunks to play");
+      return;
+    }
+
+    try {
+      setIsPlayingAudio(true);
+      
+      // Combine all chunks into a single buffer
+      const totalLength = bufferToPlay.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+      const combinedBuffer = new ArrayBuffer(totalLength);
+      const combinedView = new Uint8Array(combinedBuffer);
+      
+      let offset = 0;
+      for (const chunk of bufferToPlay) {
+        combinedView.set(new Uint8Array(chunk), offset);
+        offset += chunk.byteLength;
+      }
+
+      // Create blob and play with HTML5 audio
+      const audioBlob = new Blob([combinedBuffer], { type: 'audio/wav' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      if (!audioElementRef.current) {
+        audioElementRef.current = new Audio();
+      }
+      
+      const audio = audioElementRef.current;
+      audio.src = audioUrl;
+      
+      audio.onended = () => {
+        console.log("🎵 Audio playback finished");
+        setIsPlayingAudio(false);
+        URL.revokeObjectURL(audioUrl);
+        
+        // Clear the buffer after playback
+        setAudioResponseBuffer([]);
+        audioResponseBufferRef.current = [];
+      };
+
+      audio.onerror = (error) => {
+        console.error("❌ Audio playback error:", error);
+        setIsPlayingAudio(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+      console.log("🎵 Started audio playback");
+      
+    } catch (error) {
+      console.error("❌ Error playing audio response:", error);
+      setIsPlayingAudio(false);
+      
+      // Clear the buffer on error
+      setAudioResponseBuffer([]);
+      audioResponseBufferRef.current = [];
+    }
+  }, []);
+
+  const requestAudioResponse = useCallback(() => {
+    if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+      console.warn("⚠️ WebSocket not available for audio request");
+      return;
+    }
+
+    console.log("🔊 Requesting audio response via WebSocket");
+    // Clear any existing buffer and timeout
+    setAudioResponseBuffer([]);
+    audioResponseBufferRef.current = [];
+    
+    if (audioResponseTimeoutRef.current) {
+      clearTimeout(audioResponseTimeoutRef.current);
+    }
+
+    // Send audio request signal
+    websocket.send(JSON.stringify({ type: 'request_audio' }));
+  }, [websocket]);
+
+  // Set up the audio response ref for parent component
+  useEffect(() => {
+    if (audioResponseRef) {
+      audioResponseRef.current = {
+        requestAudio: requestAudioResponse,
+      };
+    }
+  }, [requestAudioResponse, audioResponseRef]);
+
   // WebSocket Linear16 PCM Streaming Functions
   const convertToLinear16PCM = (float32Array: Float32Array): ArrayBuffer => {
     const arrayBuffer = new ArrayBuffer(float32Array.length * 2);
@@ -315,8 +441,24 @@ export function FloatingAssistantPanel({
       };
       
       ws.onmessage = (event) => {
-        console.log('WebSocket message received:', event.data);
         try {
+          // Check if the message is binary (audio chunk)
+          if (event.data instanceof ArrayBuffer || event.data instanceof Blob) {
+            console.log('📥 Binary data received:', event.data);
+            
+            // Handle binary audio data
+            if (event.data instanceof ArrayBuffer) {
+              handleAudioResponseChunk(event.data);
+            } else if (event.data instanceof Blob) {
+              event.data.arrayBuffer().then(buffer => {
+                handleAudioResponseChunk(buffer);
+              });
+            }
+            return;
+          }
+
+          console.log('WebSocket message received:', event.data);
+          
           // Check if the message is JSON-formatted
           const isJSON = (str: any) => {
             try {

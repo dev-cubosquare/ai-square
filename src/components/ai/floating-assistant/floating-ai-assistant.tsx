@@ -52,11 +52,20 @@ export function FloatingAIAssistant({
 }: FloatingAIAssistantProps) {
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-    api: 'https://square-ai-chat.csqr.app/chat/ui',
+    api: 'http://localhost:3000/chat/ui',
   }),
 
     onError: (error) => {
       console.error("Chat error:", error);
+    },
+    
+    onFinish: (message) => {
+      console.log("💬 Chat response finished:", message);
+      // Trigger audio response after text completion
+      if (isAudioResponseEnabled && audioResponseRef.current) {
+        console.log("🔊 Requesting audio response");
+        audioResponseRef.current.requestAudio();
+      }
     },
   });
 
@@ -70,6 +79,12 @@ export function FloatingAIAssistant({
   const lastMessageIdRef = useRef<string | null>(null);
   const lastProcessedMessageIdRef = useRef<string | null>(null);
   const lastReadMessageIdRef = useRef<string | null>(null);
+
+  // Audio response state
+  const [isAudioResponseEnabled, setIsAudioResponseEnabled] = useState(false);
+  const audioResponseRef = useRef<{
+    requestAudio: () => void;
+  } | null>(null);
 
   const isMobile = useIsMobile();
   const safeDraggable = draggable && !isMobile;
@@ -485,6 +500,9 @@ export function FloatingAIAssistant({
         panelDragProps={panelDragProps}
         status={status}
         suggestions={suggestions}
+        audioResponseRef={audioResponseRef}
+        isAudioResponseEnabled={isAudioResponseEnabled}
+        onAudioResponseToggle={setIsAudioResponseEnabled}
       />
     </FloatingAssistantContextProvider>
   );
