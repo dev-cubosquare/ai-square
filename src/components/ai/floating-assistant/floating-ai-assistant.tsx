@@ -446,17 +446,29 @@ export function FloatingAIAssistant({
         return;
       }
 
-      sendMessage({
-        text: message.text || "Sent with attachments",
-        files: message.files as any,
-      });
+      (async () => {
+        try {
+          await sendMessage({
+            text: message.text || "Sent with attachments",
+            files: message.files as any,
+          });
+        } catch (err) {
+          console.error('Failed to send message:', err);
+        }
+      })();
     },
     [sendMessage],
   );
 
   const handleQuickSend = useCallback(
     (prompt: string) => {
-      sendMessage({ text: prompt });
+      (async () => {
+        try {
+          await sendMessage({ text: prompt });
+        } catch (err) {
+          console.error('Failed to send quick message:', err);
+        }
+      })();
     },
     [sendMessage],
   );

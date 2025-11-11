@@ -60,6 +60,45 @@ declare var SpeechRecognition: {
   new(): SpeechRecognition;
 };
 
+// ✅ Convert 16-bit signed PCM → WAV (16 kHz, mono, little-endian)
+// Note: backend / microphone capture uses 16kHz in this app, so the WAV header must match.
+function pcmToWav(pcmData: ArrayBuffer): ArrayBuffer {
+  const numOfChannels = 1;
+  const sampleRate = 16000;
+  const bitsPerSample = 16;
+
+  const byteRate = (sampleRate * numOfChannels * bitsPerSample) / 8;
+  const blockAlign = (numOfChannels * bitsPerSample) / 8;
+  const dataSize = pcmData.byteLength;
+
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numOfChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  new Uint8Array(buffer, 44).set(new Uint8Array(pcmData));
+
+  return buffer;
+}
+
 import { Suggestions } from "./components/suggestion";
 import PopupHeader from "./components/popup-header";
 import { PromptInputInput } from "./components/prompt-input-simple";
@@ -163,12 +202,13 @@ export function FloatingAssistantPanel({
   const [capturedText, setCapturedText] = useState('');
   const [isStreamingActive, setIsStreamingActive] = useState(false);
 
-  // Audio response state
-  const [audioResponseBuffer, setAudioResponseBuffer] = useState<ArrayBuffer[]>([]);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const audioResponseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  const audioResponseBufferRef = useRef<ArrayBuffer[]>([]);
+  // Store raw PCM ArrayBuffers converted from incoming chunks
+  // We'll concatenate them and build a single WAV at playback time.
+  const audioChunksRef = useRef<ArrayBuffer[]>([]);
+  // Timeout ref to detect end-of-stream and trigger playback
+  const audioPlayTimeoutRef = useRef<number | null>(null);
+  // UI-visible count of received WAV chunks (keeps UI reactive)
+  const [audioChunksCount, setAudioChunksCount] = useState(0);
 
   // Use refs for immediate control that persists across renders
   const streamingActiveRef = useRef(false);
@@ -307,86 +347,52 @@ export function FloatingAssistantPanel({
   };
 
   // Audio Response Functions
-  const handleAudioResponseChunk = useCallback((chunk: ArrayBuffer) => {
-    console.log(`📥 Received audio chunk: ${chunk.byteLength} bytes`);
-    setAudioResponseBuffer(prev => {
-      const newBuffer = [...prev, chunk];
-      audioResponseBufferRef.current = newBuffer;
-      return newBuffer;
-    });
-
-    // Clear any existing timeout and set a new one for end-of-stream detection
-    if (audioResponseTimeoutRef.current) {
-      clearTimeout(audioResponseTimeoutRef.current);
-    }
-
-    audioResponseTimeoutRef.current = setTimeout(() => {
-      console.log("🔚 No more audio chunks received, playing response");
-      playAudioResponse();
-    }, 500); // Wait 500ms for more chunks
-  }, []);
 
   const playAudioResponse = useCallback(async () => {
-    const bufferToPlay = audioResponseBufferRef.current;
-    console.log(`🔊 playAudioResponse called, buffer length: ${bufferToPlay.length}`);
-    
-    if (bufferToPlay.length === 0) {
-      console.log("⚠️ No audio chunks to play");
+    if (audioChunksRef.current.length === 0) {
+      console.warn('⚠️ No audio to play');
       return;
     }
 
-    try {
-      setIsPlayingAudio(true);
-      
-      // Combine all chunks into a single buffer
-      const totalLength = bufferToPlay.reduce((acc, chunk) => acc + chunk.byteLength, 0);
-      const combinedBuffer = new ArrayBuffer(totalLength);
-      const combinedView = new Uint8Array(combinedBuffer);
-      
-      let offset = 0;
-      for (const chunk of bufferToPlay) {
-        combinedView.set(new Uint8Array(chunk), offset);
-        offset += chunk.byteLength;
-      }
+    console.log('🎧 Preparing to play', audioChunksRef.current.length, 'PCM chunks');
 
-      // Create blob and play with HTML5 audio
-      const audioBlob = new Blob([combinedBuffer], { type: 'audio/wav' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      if (!audioElementRef.current) {
-        audioElementRef.current = new Audio();
-      }
-      
-      const audio = audioElementRef.current;
-      audio.src = audioUrl;
-      
-      audio.onended = () => {
-        console.log("🎵 Audio playback finished");
-        setIsPlayingAudio(false);
-        URL.revokeObjectURL(audioUrl);
-        
-        // Clear the buffer after playback
-        setAudioResponseBuffer([]);
-        audioResponseBufferRef.current = [];
-      };
+    // Concatenate all PCM ArrayBuffers into one
+    const totalBytes = audioChunksRef.current.reduce((sum, buf) => sum + buf.byteLength, 0);
+    console.log('🧩 Combined PCM bytes:', totalBytes);
 
-      audio.onerror = (error) => {
-        console.error("❌ Audio playback error:", error);
-        setIsPlayingAudio(false);
-        URL.revokeObjectURL(audioUrl);
-      };
-
-      await audio.play();
-      console.log("🎵 Started audio playback");
-      
-    } catch (error) {
-      console.error("❌ Error playing audio response:", error);
-      setIsPlayingAudio(false);
-      
-      // Clear the buffer on error
-      setAudioResponseBuffer([]);
-      audioResponseBufferRef.current = [];
+    const combined = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const buf of audioChunksRef.current) {
+      combined.set(new Uint8Array(buf), offset);
+      offset += buf.byteLength;
     }
+
+    // Build a single WAV buffer from the combined PCM
+    const wavBuffer = pcmToWav(combined.buffer);
+    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+    const url = URL.createObjectURL(wavBlob);
+
+    const audio = new Audio(url);
+
+    // Diagnostic: show visibility state
+    console.log('📺 document.visibilityState:', typeof document !== 'undefined' ? document.visibilityState : 'unknown');
+
+    audio.onerror = (err) => {
+      console.error('❌ Audio playback error:', err);
+    };
+
+    console.log('🎵 Starting audio playback');
+    await audio.play().catch(err => {
+      console.error('❌ Unable to play WAV:', err);
+    });
+
+    audio.onended = () => {
+      console.log('✅ Audio finished');
+      URL.revokeObjectURL(url);
+      // Clear stored PCM chunks after playback
+      audioChunksRef.current = [];
+      setAudioChunksCount(0);
+    };
   }, []);
 
   const requestAudioResponse = useCallback(() => {
@@ -396,13 +402,9 @@ export function FloatingAssistantPanel({
     }
 
     console.log("🔊 Requesting audio response via WebSocket");
-    // Clear any existing buffer and timeout
-    setAudioResponseBuffer([]);
-    audioResponseBufferRef.current = [];
-    
-    if (audioResponseTimeoutRef.current) {
-      clearTimeout(audioResponseTimeoutRef.current);
-    }
+    // Clear any existing WAV chunks
+    audioChunksRef.current = [];
+  setAudioChunksCount(0);
 
     // Send audio request signal
     websocket.send(JSON.stringify({ type: 'request_audio' }));
@@ -440,25 +442,54 @@ export function FloatingAssistantPanel({
         setStreamingStatus('Connected - Ready to stream');
       };
       
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
-          // Check if the message is binary (audio chunk)
-          if (event.data instanceof ArrayBuffer || event.data instanceof Blob) {
-            console.log('📥 Binary data received:', event.data);
-            
-            // Handle binary audio data
-            if (event.data instanceof ArrayBuffer) {
-              handleAudioResponseChunk(event.data);
-            } else if (event.data instanceof Blob) {
-              event.data.arrayBuffer().then(buffer => {
-                handleAudioResponseChunk(buffer);
-              });
+          // Handle binary audio data: ArrayBuffer or Blob (raw PCM from backend)
+          const data = event.data;
+
+          if (data instanceof ArrayBuffer || data instanceof Blob) {
+            // Normalize to ArrayBuffer
+            let arrayBuffer: ArrayBuffer;
+
+            if (data instanceof ArrayBuffer) {
+              arrayBuffer = data;
+              console.log('arrayBuffer  pehla data: ', arrayBuffer);
+              console.log('📥 Raw PCM ArrayBuffer received:', arrayBuffer.byteLength, 'bytes');
+            } else {
+              console.log('📥 Raw PCM Blob received:', data.size, 'bytes');
+              arrayBuffer = await data.arrayBuffer();
             }
+
+            try {
+              // Store raw PCM ArrayBuffer chunk so we can concatenate all
+              // received PCM data into one WAV for playback.
+              audioChunksRef.current.push(arrayBuffer);
+              // update reactive count so UI can show a Play button for debugging
+              setAudioChunksCount((c) => c + 1);
+
+              // Reset the end-of-stream timer and schedule playback after inactivity
+              if (audioPlayTimeoutRef.current) {
+                window.clearTimeout(audioPlayTimeoutRef.current);
+              }
+              // Slightly larger timeout to avoid premature playback while backend is still sending
+              audioPlayTimeoutRef.current = window.setTimeout(() => {
+                try {
+                  playAudioResponse();
+                } catch (e) {
+                  console.error('Error while auto-playing audio response:', e);
+                }
+              }, 800);
+
+              console.log('📥 Stored PCM chunk:', arrayBuffer.byteLength, 'bytes');
+            } catch (convErr) {
+              console.error('❌ Failed to convert PCM to WAV:', convErr);
+            }
+
             return;
           }
 
-          console.log('WebSocket message received:', event.data);
-          
+          console.log('WebSocket message received (text):', event.data);
+
           // Check if the message is JSON-formatted
           const isJSON = (str: any) => {
             try {
@@ -475,35 +506,14 @@ export function FloatingAssistantPanel({
 
             const transcript = transcriptionResult.transcript;
 
-            if (transcript.length > 0) {
+            if (transcript && transcript.length > 0) {
               console.log('Final transcript received:', transcript);
-
-              const messages = [
-                {
-                  id: crypto.randomUUID(),
-                  role: 'user',
-                  content: transcript,
-                  parts: [
-                    {
-                      type: 'text',
-                      text: transcript,
-                    },
-                  ],
-                },
-              ];
-
-              console.log('Sending transcript to WebSocket:', transcript);
               ws.send(transcript);
-
-              console.log('Auto-filling input field with transcript:', transcript);
               setTranscript(transcript);
-
-              console.log('Automatically sending transcript as a message:', transcript);
               onPromptSubmit({ text: transcript });
             }
           } else {
             // Handle plain text messages
-            console.log('Plain text message received:', event.data);
             setTranscript(event.data);
             onPromptSubmit({ text: event.data });
           }
@@ -519,6 +529,14 @@ export function FloatingAssistantPanel({
       ws.onclose = (event) => {
         setStreamingStatus('');
         setWebsocket(null);
+
+        // clear any pending playback timeout
+        if (audioPlayTimeoutRef.current) {
+          window.clearTimeout(audioPlayTimeoutRef.current);
+          audioPlayTimeoutRef.current = null;
+        }
+        // reset chunk count
+        setAudioChunksCount(0);
       };
       
       setWebsocket(ws);
@@ -647,6 +665,11 @@ export function FloatingAssistantPanel({
         setCapturedText('');
         setTotalChunksSent(0);
         setWebsocket(null);
+        // clear any pending playback timeout
+        if (audioPlayTimeoutRef.current) {
+          window.clearTimeout(audioPlayTimeoutRef.current);
+          audioPlayTimeoutRef.current = null;
+        }
         
       };
 
@@ -690,6 +713,11 @@ export function FloatingAssistantPanel({
       (window as any).__webSocketCleanup = null;
     }
 
+    // Clear any pending playback timeout
+    if (audioPlayTimeoutRef.current) {
+      window.clearTimeout(audioPlayTimeoutRef.current);
+      audioPlayTimeoutRef.current = null;
+    }
     // Reset UI states
     setStreamingStatus('Stopped');
     setTotalChunksSent(0);

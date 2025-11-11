@@ -127,7 +127,7 @@ export function FloatingAssistantMessageList({
           </motion.div>
         )}
 
-        {messages.map((message, messageIndex) => {
+  {messages.map((message, messageIndex) => {
           // Check if this is the last message and if we're currently streaming
           const isLastMessage = messageIndex === messages.length - 1;
           const isStreaming = isLastMessage && status === "streaming";
@@ -135,7 +135,7 @@ export function FloatingAssistantMessageList({
           return (
             <Message
               from={message.role}
-              key={message.id}
+              key={`${message.id}-${messageIndex}`}
               className={cn(message.role === "assistant" ? "items-start" : "")}
             >
               <MessageContent className="bg-transparent! p-0 rounded-none">
