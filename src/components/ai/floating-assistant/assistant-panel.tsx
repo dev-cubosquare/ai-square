@@ -466,9 +466,11 @@ export function FloatingAssistantPanel({
 
   const handleStartWebSocketStreaming = async () => {
     try {
-      
+        const backendUrl = import.meta.env.BACKEND_API_URL || 'http://localhost:3000';
+        const backendHost = backendUrl.replace(/^https?:\/\//, '');
+
       // Establish WebSocket connection to voice-stream endpoint
-      const ws = new WebSocket('ws://localhost:3000/chat/voice-stream');
+      const ws = new WebSocket(`ws://${backendHost}/chat/voice-stream`);
       ws.onopen = () => {
         setStreamingStatus('Connected - Ready to stream');
       };
