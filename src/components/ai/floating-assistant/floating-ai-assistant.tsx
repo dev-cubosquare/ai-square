@@ -60,10 +60,9 @@ export function FloatingAIAssistant({
     },
     
     onFinish: (message) => {
-      console.log("💬 Chat response finished:", message);
+      console.log(" Chat response finished:", message);
       // Trigger audio response after text completion
       if (isAudioResponseEnabled && audioResponseRef.current) {
-        console.log("🔊 Requesting audio response");
         audioResponseRef.current.requestAudio();
       }
     },

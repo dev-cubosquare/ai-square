@@ -205,6 +205,8 @@ export function FloatingAssistantPanel({
   // Store raw PCM ArrayBuffers converted from incoming chunks
   // We'll concatenate them and build a single WAV at playback time.
   const audioChunksRef = useRef<ArrayBuffer[]>([]);
+  // Keep a ref to the current playing HTMLAudioElement so we can abort/stop it
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   // Timeout ref to detect end-of-stream and trigger playback
   const audioPlayTimeoutRef = useRef<number | null>(null);
   // UI-visible count of received WAV chunks (keeps UI reactive)
@@ -230,6 +232,9 @@ export function FloatingAssistantPanel({
     const text = formData.get("message") as string;
 
     if (!text?.trim()) return;
+
+    // Stop any playing TTS voice when user submits new text
+    abortAudioResponse();
 
     onPromptSubmit({ text });
     e.currentTarget.reset();
@@ -354,12 +359,8 @@ export function FloatingAssistantPanel({
       return;
     }
 
-    console.log('🎧 Preparing to play', audioChunksRef.current.length, 'PCM chunks');
-
     // Concatenate all PCM ArrayBuffers into one
     const totalBytes = audioChunksRef.current.reduce((sum, buf) => sum + buf.byteLength, 0);
-    console.log('🧩 Combined PCM bytes:', totalBytes);
-
     const combined = new Uint8Array(totalBytes);
     let offset = 0;
     for (const buf of audioChunksRef.current) {
@@ -373,35 +374,65 @@ export function FloatingAssistantPanel({
     const url = URL.createObjectURL(wavBlob);
 
     const audio = new Audio(url);
+    // Store ref so playback can be interrupted
+    currentAudioRef.current = audio;
 
     // Diagnostic: show visibility state
-    console.log('📺 document.visibilityState:', typeof document !== 'undefined' ? document.visibilityState : 'unknown');
 
     audio.onerror = (err) => {
-      console.error('❌ Audio playback error:', err);
+      console.error(' Audio playback error:', err);
     };
 
-    console.log('🎵 Starting audio playback');
     await audio.play().catch(err => {
-      console.error('❌ Unable to play WAV:', err);
+      console.error(' Unable to play WAV:', err);
     });
 
     audio.onended = () => {
-      console.log('✅ Audio finished');
       URL.revokeObjectURL(url);
       // Clear stored PCM chunks after playback
       audioChunksRef.current = [];
       setAudioChunksCount(0);
+      // Clear current audio ref
+      currentAudioRef.current = null;
     };
+  }, []);
+
+  // Abort/stop any currently playing audio response
+  const abortAudioResponse = useCallback(() => {
+    console.log(' abortAudioResponse called - stopping TTS voice');
+    
+    // Stop HTMLAudio playback if exists
+    if (currentAudioRef.current) {
+      try {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+        if (currentAudioRef.current.src && currentAudioRef.current.src.startsWith('blob:')) {
+          URL.revokeObjectURL(currentAudioRef.current.src);
+        }
+      } catch (e) {
+        console.error('Error stopping audio:', e);
+      }
+      currentAudioRef.current = null;
+    }
+
+    // Clear stored chunks and any pending playback timer
+    audioChunksRef.current = [];
+    setAudioChunksCount(0);
+    if (audioPlayTimeoutRef.current) {
+      window.clearTimeout(audioPlayTimeoutRef.current);
+      audioPlayTimeoutRef.current = null;
+    }
+
+    console.log('Audio stopped successfully');
   }, []);
 
   const requestAudioResponse = useCallback(() => {
     if (!websocket || websocket.readyState !== WebSocket.OPEN) {
-      console.warn("⚠️ WebSocket not available for audio request");
+      console.warn("WebSocket not available for audio request");
       return;
     }
 
-    console.log("🔊 Requesting audio response via WebSocket");
+    console.log("Requesting audio response via WebSocket");
     // Clear any existing WAV chunks
     audioChunksRef.current = [];
   setAudioChunksCount(0);
@@ -454,9 +485,8 @@ export function FloatingAssistantPanel({
             if (data instanceof ArrayBuffer) {
               arrayBuffer = data;
               console.log('arrayBuffer  pehla data: ', arrayBuffer);
-              console.log('📥 Raw PCM ArrayBuffer received:', arrayBuffer.byteLength, 'bytes');
             } else {
-              console.log('📥 Raw PCM Blob received:', data.size, 'bytes');
+              console.log('Raw PCM Blob received:', data.size, 'bytes');
               arrayBuffer = await data.arrayBuffer();
             }
 
@@ -480,9 +510,9 @@ export function FloatingAssistantPanel({
                 }
               }, 800);
 
-              console.log('📥 Stored PCM chunk:', arrayBuffer.byteLength, 'bytes');
+              console.log('Stored PCM chunk:', arrayBuffer.byteLength, 'bytes');
             } catch (convErr) {
-              console.error('❌ Failed to convert PCM to WAV:', convErr);
+              console.error(' Failed to convert PCM to WAV:', convErr);
             }
 
             return;
@@ -507,13 +537,15 @@ export function FloatingAssistantPanel({
             const transcript = transcriptionResult.transcript;
 
             if (transcript && transcript.length > 0) {
+              abortAudioResponse(); // Stop ongoing TTS voice immediately
               console.log('Final transcript received:', transcript);
               ws.send(transcript);
               setTranscript(transcript);
               onPromptSubmit({ text: transcript });
             }
           } else {
-            // Handle plain text messages
+            // Handle plain text messages - user is speaking!
+            abortAudioResponse(); // Stop ongoing TTS voice immediately
             setTranscript(event.data);
             onPromptSubmit({ text: event.data });
           }
@@ -694,6 +726,9 @@ export function FloatingAssistantPanel({
     setIsStreamingActive(false);
     setIsRecording(false);
     setStreamingStatus('Stopping...');
+
+    // Stop any playing TTS voice
+    abortAudioResponse();
 
     // Close WebSocket immediately
     if (websocket) {
