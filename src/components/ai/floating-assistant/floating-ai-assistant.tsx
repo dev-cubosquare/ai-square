@@ -50,13 +50,23 @@ export function FloatingAIAssistant({
   defaultPosition,
   draggable = true,
 }: FloatingAIAssistantProps) {
+  const backendUrl = import.meta.env.BACKEND_API_URL || 'http://localhost:3000';
+  
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-    api: 'https://square-ai-chat.csqr.app/chat/ui',
+    api: `${backendUrl}/chat/ui`,
   }),
 
     onError: (error) => {
       console.error("Chat error:", error);
+    },
+    
+    onFinish: (message) => {
+      console.log(" Chat response finished:", message);
+      // Trigger audio response after text completion
+      if (isAudioResponseEnabled && audioResponseRef.current) {
+        audioResponseRef.current.requestAudio();
+      }
     },
   });
 
@@ -70,6 +80,12 @@ export function FloatingAIAssistant({
   const lastMessageIdRef = useRef<string | null>(null);
   const lastProcessedMessageIdRef = useRef<string | null>(null);
   const lastReadMessageIdRef = useRef<string | null>(null);
+
+  // Audio response state
+  const [isAudioResponseEnabled, setIsAudioResponseEnabled] = useState(false);
+  const audioResponseRef = useRef<{
+    requestAudio: () => void;
+  } | null>(null);
 
   const isMobile = useIsMobile();
   const safeDraggable = draggable && !isMobile;
@@ -431,17 +447,29 @@ export function FloatingAIAssistant({
         return;
       }
 
-      sendMessage({
-        text: message.text || "Sent with attachments",
-        files: message.files as any,
-      });
+      (async () => {
+        try {
+          await sendMessage({
+            text: message.text || "Sent with attachments",
+            files: message.files as any,
+          });
+        } catch (err) {
+          console.error('Failed to send message:', err);
+        }
+      })();
     },
     [sendMessage],
   );
 
   const handleQuickSend = useCallback(
     (prompt: string) => {
-      sendMessage({ text: prompt });
+      (async () => {
+        try {
+          await sendMessage({ text: prompt });
+        } catch (err) {
+          console.error('Failed to send quick message:', err);
+        }
+      })();
     },
     [sendMessage],
   );
@@ -485,6 +513,9 @@ export function FloatingAIAssistant({
         panelDragProps={panelDragProps}
         status={status}
         suggestions={suggestions}
+        audioResponseRef={audioResponseRef}
+        isAudioResponseEnabled={isAudioResponseEnabled}
+        onAudioResponseToggle={setIsAudioResponseEnabled}
       />
     </FloatingAssistantContextProvider>
   );
