@@ -50,7 +50,7 @@ export function FloatingAIAssistant({
   defaultPosition,
   draggable = true,
 }: FloatingAIAssistantProps) {
-  const backendUrl = import.meta.env.BACKEND_API_URL || 'http://localhost:3000';
+  const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3000';
   
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({

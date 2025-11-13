@@ -466,7 +466,7 @@ export function FloatingAssistantPanel({
 
   const handleStartWebSocketStreaming = async () => {
     try {
-        const backendUrl = import.meta.env.BACKEND_API_URL || 'http://localhost:3000';
+        const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3000';
         const backendHost = backendUrl.replace(/^https?:\/\//, '');
 
       // Establish WebSocket connection to voice-stream endpoint
